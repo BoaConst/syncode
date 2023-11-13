@@ -1,7 +1,6 @@
 **Group 2 - SynCode:** Demin, Suumil, Helia, Pranay, Shunzhi
 
 # <p align="center">DVCS Module Specifications</p>
-
 # Module A: Machine Hiding
 **Designers:** Demin, Suumil | **Reviewers:** Suumil, Demin
 
@@ -175,7 +174,7 @@ The Behavior Hiding Module is expected to interact with both Machine Hiding and 
 - *Machine Hiding:* For example, the Command Parser Module and the Syntax Checking & Error Handling Module might have to work closely with Machine Hiding in order to make sure differences related to different OS or devices get processed correctly. 
 - *Repository Hiding:* For instance, the User Interface Module will have to interact with the Repository Hiding module constantly in order to provide data/feedback/status back and forth between the user and the DVCS system, as well as between different modules in the DVCS system.
 
-# Module B.1: Command Parser Module**
+# Module B.1: Command Parser Module
 **Designer:** Pranay | **Reviewer:** Demin
 
 **Role:**
@@ -344,7 +343,7 @@ This module is responsible for handling various types of errors that may occur i
     assert_eq!(result, "Semantic Error ABC found! Suggestion: XYZ.");
     ```
 
-# Module B.3: User Interface Module**
+# Module B.3: User Interface Module
 **Designer:** Pranay | **Reviewer:** Suumil
 
 **Role:**
