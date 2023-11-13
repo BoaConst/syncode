@@ -127,9 +127,66 @@ The file system module will list and handle potential conflicts that do not have
 
 **Facilities:**
 1. **Cross-machine filesystem I/O conflicts collecting module**
+    - *Description:* Collects and identifies unique filesystem conflicts that arise due to different operating systems, which are not inherently resolved by Rust.
+    - *Method:*
+     ```rust
+     fn identify_conflict(file_path: &str) -> Result<FileSystemConflict, IoError>;
+     ```
+    - *Input:*
+        - `file_path: &str`: The path of the file where a potential conflict might occur.
+    - *Output:*
+        - `Result<FileSystemConflict, IoError>`: The type of conflict identified or an error if the process fails.
 
 2. **File system-specific I/O adaptor module**
+    - *Description:* Adapts file system operations to handle identified conflicts in a way that ensures consistency across different operating systems.
+    - *Method:*
+     ```rust
+     fn adapt_io_operations(file_path: &str, conflict: FileSystemConflict) -> Result<(), IoError>;
+     ```
+    - *Input:*
+        - `file_path: &str`: The path of the file to be adapted.
+        - `conflict: FileSystemConflict`: The specific conflict identified that needs resolution.
+    - *Output:*
+        - `Result<(), IoError>`: Success if adaptation is successful, or an error if it fails.
 
+**Tests:**
+
+1. **Conflict Identification Success:**
+    ```rust
+    // Test ID: 1
+    let file_system_module = FileSystemOperationsModule::new();
+    let file_path = "/path/to/file";
+    let result = file_system_module.identify_conflict(file_path);
+    assert_eq!(result.is_ok(), true);
+    ```
+2. **Conflict Identification Failure:**
+    ```rust
+    // Test ID: 2
+    let file_system_module = FileSystemOperationsModule::new();
+    let invalid_file_path = "/invalid/path";
+    let result = file_system_module.identify_conflict(invalid_file_path);
+    assert_eq!(result.is_err(), true);
+    ```
+
+3. **I/O Operation Adaptation Success:**
+    ```rust
+    // Test ID: 3
+    let file_system_module = FileSystemOperationsModule::new();
+    let file_path = "/path/to/file";
+    let conflict = FileSystemConflict::LineEndings;
+    let result = file_system_module.adapt_io_operations(file_path, conflict);
+    assert_eq!(result.is_ok(), true);
+    ```
+
+4. **I/O Operation Adaptation Failure:**
+    ```rust
+    // Test ID: 4
+    let file_system_module = FileSystemOperationsModule::new();
+    let file_path = "/path/to/file";
+    let invalid_conflict = FileSystemConflict::Unknown;
+    let result = file_system_module.adapt_io_operations(file_path, invalid_conflict);
+    assert_eq!(result.is_err(), true);
+    ```
 
 # Module A.2: Network Operations Module
 **Designer:** Suumil | **Reviewer:** Demin
