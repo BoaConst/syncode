@@ -496,8 +496,15 @@ The User Interface Module focuses on managing interactions between users and the
 
 **Facilities:**
 
-1. **User Input**
-    - *Description:* This module provides a simple interface for the user to input their command and necessary info.
+1. **User Interface**
+    - *Description:* This module provides a simple interface for the user and the DVCS system to interact with each other as per the user's (validated/correct) commands.
+    - *Method:* 
+     ```rust
+     fn show_user_interface() -> None;
+     ```
+
+2. **User Input**
+    - *Description:* This module reads the user's input including their command and necessary info.
     - *Method:* 
      ```rust
      fn get_user_input() -> String;
@@ -505,16 +512,17 @@ The User Interface Module focuses on managing interactions between users and the
     - *Output:*
         - `String`: User-provided input.
 
-2. **Helping Message**
-    - *Description:* This functionality allows the user to learn the necessary syntax or actions they need to provide/do for the DVCS system to work.
+3. **Command Execution**
+    - *Description:* This module executes the DVCS functionalities as requested in the user's commands and inputs after they have been validated as correct.
     - *Method:* 
      ```rust
-     fn display_help_message() -> String;
+     fn execute_command() -> Result<DvcsOutput, ExecutionError>;
      ```
     - *Output:*
-        - `String`: Help message providing necessary syntax or actions for the DVCS system.
+        - `Ok(DvcsOutput)`: the output depends on the particular DVCS functionality requested by the user.
+        - `Err(ExecutionError)`: execution failed, error is returned.
 
-3. **User Prompt**
+4. **User Prompt**
     - *Description:* This functionality prompts the user to the necessary steps through the DVCS functionalities.
     - *Method:*
      ```rust
@@ -523,7 +531,7 @@ The User Interface Module focuses on managing interactions between users and the
     - *Input:*
         - `message`: Message to prompt the user.
 
-4. **Staging Change**
+5. **Staging Change**
     - *Description:* This module also informs users of the current status of their command request if applicable.
     - *Method:*
      ```rust
@@ -548,11 +556,12 @@ The User Interface Module focuses on managing interactions between users and the
    assert_eq!(result.is_empty(), true);
    ```
 
-3. **Helping Message Test**
-   ```rust
+3. **Command Execution Test - Success**
+    ```rust
    // Test ID: 3
-   let help_message = user_interface_module.display_help_message();
-   assert_eq!(help_message.is_empty(), false);
+   let command = "some valid commands";
+   let exe = user_interface_module.execute_command(command);
+   assert_eq!(result.is_ok(), true);
    ```
 
 4. **User Prompt Test**
@@ -1139,8 +1148,9 @@ The Staging Module is responsible for the management and update of the user’s 
 
 ### B.3: User Interface Module
 **Uses:**
-- Command Parser Module (B.1) and Syntax Checker & Error Handling Module (B.2) to get command inputs and error information.
+- Command Parser Module (B.1) and Syntax Checker & Error Handling Module (B.2) to get command inputs and handle errors.
 - Authentication Manager Module (B.4) for displaying authentication-related prompts or messages.
+- Repository Hiding Module (B) to execute DVCS functionalities as requested by the user.
 
 ### B.4: Authentication Manager Module
 **Uses:**
