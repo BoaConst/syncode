@@ -26,8 +26,9 @@
 
 ### B.3: User Interface Module
 **Uses:**
-- Command Parser Module (B.1) and Syntax Checker & Error Handling Module (B.2) to get command inputs and error information.
+- Command Parser Module (B.1) and Syntax Checker & Error Handling Module (B.2) to get command inputs and handle errors.
 - Authentication Manager Module (B.4) for displaying authentication-related prompts or messages.
+- Repository Hiding Module (B) to execute DVCS functionalities as requested by the user.
 
 ### B.4: Authentication Manager Module
 **Uses:**
