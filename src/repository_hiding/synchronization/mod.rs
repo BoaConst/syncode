@@ -250,3 +250,65 @@ impl SynchronizationModule {
     }
 
 }
+
+
+// Unit tests for the Synchronization Module
+/**
+ * Assumption : The following functions will be part of module C.1
+ * - create_revision(rev_id : String)
+ * - create_revision_with_conflict(rev_id : String)
+ * - create_remote_repo(url : String)
+ * - create_local_repo(directory_path : String)
+ */
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn merge_test() {
+        // Test ID: 1
+        // Test merging two valid revisions.
+        let revision_a = create_revision("Code Revision A");
+        let revision_b = create_revision("Code Revision B");
+        let result = SynchronizationModule::merge(&revision_a, &revision_b);
+        assert_eq!(result.is_ok(), true);
+
+        // Test ID: 4
+        // Test merging revisions with conflicts.
+        let conflicting_revision_b = create_revision_with_conflict("Code Revision B");
+        let result = SynchronizationModule::merge(&revision_a, &conflicting_revision_b);
+        assert_eq!(result.is_err(), true);
+    }
+
+    #[test]
+    fn pull_test() {
+        // Test ID: 2
+        // Test pulling updates from a valid remote repository.
+        let remote_repo = create_remote_repo("https://example.com/repo.git");
+        let result = SynchronizationModule::pull(&remote_repo);
+        assert_eq!(result.is_ok(), true);
+
+        // Test ID: 5
+        // Test pulling updates from an invalid remote repository.
+        let invalid_remote_repo = create_remote_repo("https://invalid.example.com/repo.git");
+        let result = SynchronizationModule::pull(&invalid_remote_repo);
+        assert_eq!(result.is_err(), true);
+    }
+
+    #[test]
+    fn push_test() {
+        // Test ID: 3
+        // Test pushing changes to a valid remote repository.
+        let local_repo = create_local_repo("path/to/local/repo");
+        let remote_repo = create_remote_repo("https://example.com/repo.git");
+        let result = SynchronizationModule::push(&local_repo, &remote_repo);
+        assert_eq!(result.is_ok(), true);
+
+        // Test ID: 6
+        // Test pushing changes to an invalid remote repository.
+        let invalid_remote_repo = create_remote_repo("https://invalid.example.com/repo.git");
+        let local_repo = create_local_repo("path/to/local/repo");
+        let result = SynchronizationModule::push(&local_repo, &invalid_remote_repo);
+        assert_eq!(result.is_err(), true);
+    }
+}
