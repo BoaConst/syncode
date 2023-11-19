@@ -43,7 +43,7 @@ mod staging {
             if message.is_empty() {
                 return Err(CommitError::EmptyMessage);
             }
-            //TODO Implement the commit logic here
+            // TODO Implement the commit logic here
             Ok(())
         }
 
