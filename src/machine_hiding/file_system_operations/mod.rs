@@ -1,7 +1,7 @@
 /**
- * Module A.1 : FileSystem Operations Module
- * Designer : Demin 
- * Reviewer Suumil
+ * Module A.1 : FileSystem OperationsModule
+ * Designer : Suumil 
+ * Reviewer Demin
  */
 mod file_system_operations {
     pub struct FileSystemOperationsModule {
@@ -13,8 +13,8 @@ mod file_system_operations {
         LineEndings,
         PathFormat,
         CharacterEncoding,
-        // Add other specific conflicts as and when discovered while testing
-        Unknown, 
+        // Add other specific conflicts here
+        Unknown, // For conflicts that cannot be categorized
     }
 
     #[derive(Debug, PartialEq)]
@@ -22,17 +22,18 @@ mod file_system_operations {
         InvalidPath,
         ConflictDetectionFailed,
         OperationAdaptationFailed,
-        // Other I/O errors can be added as required
+        // Other I/O errors can be added here
     }
 
     impl FileSystemOperationsModule {
         // Creates a new `FileSystemOperationsModule` instance.
         pub fn new() -> Self {
             FileSystemOperationsModule {
+                // Initialize fields as needed
             }
         }
 
-        // Identifies filesystem conflicts.
+        // Identifies unique filesystem conflicts.
         pub fn identify_conflict(&self, file_path: &str) -> Result<FileSystemConflict, IoError> {
             // TODO: Implement conflict identification logic
             // This is a mock implementation. Replace with actual logic.
