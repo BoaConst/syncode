@@ -12,6 +12,8 @@ mod network_operations {
     pub enum DataFlowError {
         UnreachableHost,
         NetworkIssue,
+        DataCorruption,
+        Timeout,
         // Add other data flow errors if required
     }
 
