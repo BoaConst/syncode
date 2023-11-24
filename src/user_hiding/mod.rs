@@ -1,17 +1,15 @@
 
 /* FOR INCREMENT 2 ONLY - IGNORE FOR NOW */
 
+use crate::syncode::repository_hiding::*;
+
 /// This struct is used to represent the DVCS authentication configuration.
 #[derive(Debug)]
 pub struct DvcsAuthConfig {
-    /// The name of the DVCS.
-    pub name: String,
-    /// The email of the DVCS.
-    pub email: String,
-    /// The username of the DVCS.
+    /// The username of the DVCS user.
     pub username: String,
-    /// The password of the DVCS.
-    pub password: String,
+    /// The permission of the DVCS.
+    pub permission: 'edit',
 }
 
 /// This struct is used to represent the DVCS authentication log.
@@ -27,21 +25,11 @@ pub struct DvcsAuthLog {
     pub repository: String,
 }
 
-/// This enum type is used to represent the DVCS authentication functionalities.
-/// used in the CommandParser module to parse the user input and in the interface module to execute the DVCS authentication commands.
-#[derive(Debug, PartialEq)]
-pub enum DvcsAuthCommand {
-    check_user_authentication,
-    report_user_permissions,
-}
-
 /// This error type is used to report errors related to the DVCS authentication.
 #[derive(Debug)]
 pub enum DvcsAuthError {
     /// This error type is used to report errors related to invalid username.
     InvalidUsername,
-    /// This error type is used to report errors related to invalid password.
-    InvalidPassword,
-    /// This error type is used to report errors related to invalid email.
-    InvalidEmail,
+    /// This error type is used to report errors related to invalid permission.
+    InvalidPermission,
 }
