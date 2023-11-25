@@ -1,11 +1,20 @@
 /**
  * Module A.2 : Network Operations Module
  * Designer : Suumil 
- * Reviewer Demin
+ * Reviewer : Demin
  */
 mod network_operations {
-    pub struct NetworkOperationsModule {
-        
+    #[derive(Debug, Clone)]
+    pub enum RetryPolicy {
+        None,
+        ExponentialBackoff,
+    }
+
+    #[derive(Debug, Clone)]
+    pub enum EncryptionStandard {
+        None,
+        AES,
+        DES,
     }
 
     #[derive(Debug, PartialEq)]
@@ -14,28 +23,32 @@ mod network_operations {
         NetworkIssue,
         DataCorruption,
         Timeout,
-        // Add other data flow errors if required
     }
 
     #[derive(Debug, PartialEq)]
     pub enum AuthenticationError {
         InvalidCredentials,
         ConnectionError,
-        // Add other authentication errors if required
     }
 
     #[derive(Debug, PartialEq)]
     pub enum EncryptionError {
         InvalidKey,
         EncryptionFailed,
-        // Add other encryption errors if required
+    }
+
+    pub struct NetworkOperationsModule {
+        timeout: Option<u32>,
+        retry_policy: Option<RetryPolicy>,
+        encryption_standard: Option<EncryptionStandard>,
     }
 
     impl NetworkOperationsModule {
-        // Creates a new `NetworkOperationsModule` instance.
-        pub fn new() -> Self {
+        fn new(timeout: Option<u32>, retry_policy: Option<RetryPolicy>, encryption_standard: Option<EncryptionStandard>) -> Self {
             NetworkOperationsModule {
-                // Initialize fields as needed
+                timeout,
+                retry_policy,
+                encryption_standard,
             }
         }
 
@@ -62,6 +75,41 @@ mod network_operations {
             Ok(encrypted_data)
         }
     }
+
+    pub struct NetworkOperationsBuilder {
+        timeout: Option<u32>,
+        retry_policy: Option<RetryPolicy>,
+        encryption_standard: Option<EncryptionStandard>,
+    }
+
+    impl NetworkOperationsBuilder {
+        pub fn new() -> Self {
+            NetworkOperationsBuilder {
+                timeout: None,
+                retry_policy: None,
+                encryption_standard: None,
+            }
+        }
+
+        pub fn timeout(mut self, timeout: u32) -> Self {
+            self.timeout = Some(timeout);
+            self
+        }
+
+        pub fn retry_policy(mut self, policy: RetryPolicy) -> Self {
+            self.retry_policy = Some(policy);
+            self
+        }
+
+        pub fn encryption_standard(mut self, standard: EncryptionStandard) -> Self {
+            self.encryption_standard = Some(standard);
+            self
+        }
+
+        pub fn build(self) -> NetworkOperationsModule {
+            NetworkOperationsModule::new(self.timeout, self.retry_policy, self.encryption_standard)
+        }
+    }
 }
 
 #[cfg(test)]
@@ -71,7 +119,11 @@ mod tests {
 
     #[test]
     fn transfer_data_success() {
-        let network_module = NetworkOperationsModule::new();
+        let network_module = network_operations::NetworkOperationsBuilder::new()
+                                .timeout(30)
+                                .retry_policy(network_operations::RetryPolicy::ExponentialBackoff)
+                                .encryption_standard(network_operations::EncryptionStandard::AES)
+                                .build();
         let data = "example data";
         let destination = "10.101.202.21";
         let result = network_module.transfer_data(data, destination);
@@ -80,7 +132,11 @@ mod tests {
 
     #[test]
     fn transfer_data_failure() {
-        let network_module = NetworkOperationsModule::new();
+        let network_module = network_operations::NetworkOperationsBuilder::new()
+                                .timeout(30)
+                                .retry_policy(network_operations::RetryPolicy::ExponentialBackoff)
+                                .encryption_standard(network_operations::EncryptionStandard::AES)
+                                .build();
         let data = "example data";
         let unreachable_host = "10.12.12.12";
         let result = network_module.transfer_data(data, unreachable_host);
@@ -89,7 +145,11 @@ mod tests {
 
     #[test]
     fn authentication_success() {
-        let network_module = NetworkOperationsModule::new();
+        let network_module = network_operations::NetworkOperationsBuilder::new()
+                                .timeout(30)
+                                .retry_policy(network_operations::RetryPolicy::ExponentialBackoff)
+                                .encryption_standard(network_operations::EncryptionStandard::AES)
+                                .build();
         let source = "10.12.12.12";
         let auth_data = "valid_credentials";
         let result = network_module.authenticate(source, auth_data);
@@ -98,7 +158,11 @@ mod tests {
 
     #[test]
     fn authentication_failure() {
-        let network_module = NetworkOperationsModule::new();
+        let network_module = network_operations::NetworkOperationsBuilder::new()
+                                .timeout(30)
+                                .retry_policy(network_operations::RetryPolicy::ExponentialBackoff)
+                                .encryption_standard(network_operations::EncryptionStandard::AES)
+                                .build();
         let source = "10.12.12.12";
         let invalid_auth_data = "invalid_credentials";
         let result = network_module.authenticate(source, invalid_auth_data);
@@ -107,7 +171,11 @@ mod tests {
 
     #[test]
     fn data_encryption_success() {
-        let network_module = NetworkOperationsModule::new();
+        let network_module = network_operations::NetworkOperationsBuilder::new()
+                                .timeout(30)
+                                .retry_policy(network_operations::RetryPolicy::ExponentialBackoff)
+                                .encryption_standard(network_operations::EncryptionStandard::AES)
+                                .build();
         let data = "sensitive data";
         let encryption_key = "sha256";
         let result = network_module.encrypt_data(data, encryption_key);
@@ -117,7 +185,11 @@ mod tests {
 
     #[test]
     fn data_encryption_failure() {
-        let network_module = NetworkOperationsModule::new();
+        let network_module = network_operations::NetworkOperationsBuilder::new()
+                                .timeout(30)
+                                .retry_policy(network_operations::RetryPolicy::ExponentialBackoff)
+                                .encryption_standard(network_operations::EncryptionStandard::AES)
+                                .build();
         let data = "sensitive data";
         let invalid_key = "";
         let result = network_module.encrypt_data(data, invalid_key);

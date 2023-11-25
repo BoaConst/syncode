@@ -4,6 +4,27 @@
  * Reviewer Demin
  */
 mod file_system_operations {
+    pub struct FileSystemOperationsModule {
+        // Additional fields can be added as needed
+    }
+
+    #[derive(Debug, PartialEq)]
+    pub enum FileSystemConflict {
+        LineEndings,
+        PathFormat,
+        CharacterEncoding,
+        // Add other specific conflicts here
+        Unknown, // For conflicts that cannot be categorized
+    }
+
+    #[derive(Debug, PartialEq)]
+    pub enum IoError {
+        InvalidPath,
+        ConflictDetectionFailed,
+        OperationAdaptationFailed,
+        // Other I/O errors can be added here
+    }
+
     impl FileSystemOperationsModule {
         // Creates a new `FileSystemOperationsModule` instance.
         pub fn new() -> Self {
