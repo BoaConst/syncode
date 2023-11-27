@@ -3,85 +3,82 @@
  * Designer : Suumil 
  * Reviewer Shunzhi
  */
-mod staging {
     use std::collections::HashMap;
 
-    pub struct StagingModule {
-        file_states: HashMap<String, FileState>,
-    }
+pub struct StagingModule {
+    file_states: HashMap<String, FileState>,
+}
 
-    #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-    pub enum FileState {
-        Added,
-        Deleted,
-        Updated,
-    }
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+pub enum FileState {
+    Added,
+    Deleted,
+    Updated,
+}
 
-    #[derive(Debug, PartialEq)]
-    pub enum CommitError {
-        EmptyMessage,
-        // Add other error types if required
-    }
+#[derive(Debug, PartialEq)]
+pub enum CommitError {
+    EmptyMessage,
+    // Add other error types if required
+}
 
-    #[derive(Debug, PartialEq)]
-    pub enum TrackingError {
-        FileNotFound,
-        FileNotTracked,
-        // Add other error types if required
-    }
+#[derive(Debug, PartialEq)]
+pub enum TrackingError {
+    FileNotFound,
+    FileNotTracked,
+    // Add other error types if required
+}
 
-    impl StagingModule {
-        // Creates a new `StagingModule` instance.
-        pub fn new() -> Self {
-            StagingModule {
-                file_states: HashMap::new(),
-            }
+impl StagingModule {
+    // Creates a new `StagingModule` instance.
+    pub fn new() -> Self {
+        StagingModule {
+            file_states: HashMap::new(),
         }
+    }
 
-        // Commits changes to the repository with a given message.
-        pub fn commit(&self, message: &str) -> Result<(), CommitError> {
-            if message.is_empty() {
-                return Err(CommitError::EmptyMessage);
-            }
-            // TODO Implement the commit logic here
+    // Commits changes to the repository with a given message.
+    pub fn commit(&self, message: &str) -> Result<(), CommitError> {
+        if message.is_empty() {
+            return Err(CommitError::EmptyMessage);
+        }
+        // TODO Implement the commit logic here
+        Ok(())
+    }
+
+    // Adds or updates a file in the tracking list.
+    pub fn add_or_update(&mut self, file_path: &str, state: FileState) -> Result<(), TrackingError> {
+        self.file_states.insert(file_path.to_string(), state);
+        Ok(())
+    }
+
+    // Marks a file as deleted in the tracking list.
+    pub fn mark_deleted(&mut self, file_path: &str) -> Result<(), TrackingError> {
+        if self.file_states.contains_key(file_path) {
+            self.file_states.insert(file_path.to_string(), FileState::Deleted);
             Ok(())
+        } else {
+            Err(TrackingError::FileNotTracked)
         }
+    }
 
-        // Adds or updates a file in the tracking list.
-        pub fn add_or_update(&mut self, file_path: &str, state: FileState) -> Result<(), TrackingError> {
-            self.file_states.insert(file_path.to_string(), state);
+    // Removes a file from the tracking list.
+    pub fn remove(&mut self, file_path: &str) -> Result<(), TrackingError> {
+        if self.file_states.remove(file_path).is_some() {
             Ok(())
+        } else {
+            Err(TrackingError::FileNotTracked)
         }
+    }
 
-        // Marks a file as deleted in the tracking list.
-        pub fn mark_deleted(&mut self, file_path: &str) -> Result<(), TrackingError> {
-            if self.file_states.contains_key(file_path) {
-                self.file_states.insert(file_path.to_string(), FileState::Deleted);
-                Ok(())
-            } else {
-                Err(TrackingError::FileNotTracked)
-            }
-        }
-
-        // Removes a file from the tracking list.
-        pub fn remove(&mut self, file_path: &str) -> Result<(), TrackingError> {
-            if self.file_states.remove(file_path).is_some() {
-                Ok(())
-            } else {
-                Err(TrackingError::FileNotTracked)
-            }
-        }
-
-        // Returns the status of tracked files.
-        pub fn status(&self) -> HashMap<String, FileState> {
-            self.file_states.clone()
-        }
+    // Returns the status of tracked files.
+    pub fn status(&self) -> HashMap<String, FileState> {
+        self.file_states.clone()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::staging::*;
     use super::*;
 
     #[test]

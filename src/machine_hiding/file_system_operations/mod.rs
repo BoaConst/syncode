@@ -3,61 +3,92 @@
  * Designer : Suumil 
  * Reviewer Demin
  */
-mod file_system_operations {
-    pub struct FileSystemOperationsModule {
-        // Additional fields can be added as needed
-    }
+pub struct FileSystemOperationsModule {
+    // Additional fields can be added as needed
+}
 
-    #[derive(Debug, PartialEq)]
-    pub enum FileSystemConflict {
-        LineEndings,
-        PathFormat,
-        CharacterEncoding,
-        // Add other specific conflicts here
-        Unknown, // For conflicts that cannot be categorized
-    }
+#[derive(Debug, PartialEq)]
+pub enum FileSystemConflict {
+    LineEndings,
+    PathFormat,
+    CharacterEncoding,
+    // Add other specific conflicts here
+    Unknown, // For conflicts that cannot be categorized
+}
 
-    #[derive(Debug, PartialEq)]
-    pub enum IoError {
-        InvalidPath,
-        ConflictDetectionFailed,
-        OperationAdaptationFailed,
-        // Other I/O errors can be added here
-    }
+#[derive(Debug, PartialEq)]
+pub enum IoError {
+    InvalidPath,
+    ConflictDetectionFailed,
+    OperationAdaptationFailed,
+    // Other I/O errors can be added here
+}
 
-    impl FileSystemOperationsModule {
-        // Creates a new `FileSystemOperationsModule` instance.
-        pub fn new() -> Self {
-            FileSystemOperationsModule {
-                // Initialize fields as needed
-            }
+impl FileSystemOperationsModule {
+    // Creates a new `FileSystemOperationsModule` instance.
+    pub fn new() -> Self {
+        FileSystemOperationsModule {
+            // Initialize fields as needed
         }
+    }
 
-        // Identifies unique filesystem conflicts.
-        pub fn identify_conflict(&self, file_path: &str) -> Result<FileSystemConflict, IoError> {
-            // TODO: Implement conflict identification logic
-            // This is a mock implementation. Replace with actual logic.
-            if file_path.is_empty() {
-                Err(IoError::InvalidPath)
-            } else {
-                Ok(FileSystemConflict::Unknown) // Replace with actual conflict detection
-            }
+    // Identifies unique filesystem conflicts.
+    pub fn identify_conflict(&self, file_path: &str) -> Result<FileSystemConflict, IoError> {
+        // TODO: Implement conflict identification logic
+        // This is a mock implementation. Replace with actual logic.
+        if file_path.is_empty() {
+            Err(IoError::InvalidPath)
+        } else {
+            Ok(FileSystemConflict::Unknown) // Replace with actual conflict detection
         }
+    }
 
-        // Adapts I/O operations to handle identified conflicts.
-        pub fn adapt_io_operations(&self, file_path: &str, conflict: FileSystemConflict) -> Result<(), IoError> {
-            // TODO: Implement I/O operation adaptation logic, replace the placeholder mock logic
-            match conflict {
-                FileSystemConflict::Unknown => Err(IoError::OperationAdaptationFailed),
-                _ => Ok(()),
-            }
+    // Adapts I/O operations to handle identified conflicts.
+    pub fn adapt_io_operations(&self, file_path: &str, conflict: FileSystemConflict) -> Result<(), IoError> {
+        // TODO: Implement I/O operation adaptation logic, replace the placeholder mock logic
+        match conflict {
+            FileSystemConflict::Unknown => Err(IoError::OperationAdaptationFailed),
+            _ => Ok(()),
         }
     }
 }
 
+
+// For prototype:
+
+use std::env;
+use std::path::Path;
+use std::fs;
+use std::fs::File;
+use std::io::Write;
+
+pub fn get_cwd() -> String {
+    let cwd = env::current_dir().unwrap().into_os_string().into_string().unwrap();
+    cwd
+}
+
+pub fn check_path(path: &String) -> bool {
+    Path::new(path).exists()
+}
+
+pub fn join_paths(path1: &String, path2: &String) -> String {
+    let p = Path::new(path1).join(Path::new(path2));
+    p.to_string_lossy().to_string()
+}
+
+pub fn create_dir_all(path: &String) {
+    fs::create_dir_all(path).expect("failure to create dir");
+}
+
+pub fn write_string(path: &String, name: &String, s: &String) {
+    let p = Path::new(path).join(Path::new(name));
+    let mut f = File::create(p).expect("failure to create file");
+    f.write_all(s.as_bytes()).expect("failure to write line");
+}
+
+
 #[cfg(test)]
 mod tests {
-    use super::file_system_operations::*;
     use super::*;
 
     #[test]
