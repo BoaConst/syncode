@@ -1,27 +1,43 @@
-mod syntax_checker_error_handling {
 
-    impl SyntaxCheckerErrorHandlingModule {
 
-        // Importing modules
-        use std::error::Error;
-        use std::fmt;
-        use crate::syncode::repository_hiding::*;      // including DvcsCommand, DvcsError
+// Importing modules
+use std::error::Error;
+use std::fmt::{self, write};
+use super::repository_hiding::initialization::*;      // including DvcsCommand, DvcsError
 
-        // Implementing the Display trait for DvcsError 
-        impl fmt::Display for DvcsError {
-            fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-                match self {
-                    DvcsError::InvalidCommand => write!(f, "Invalid command"),
-                    DvcsError::InvalidNumberOfArguments => write!(f, "Invalid number of arguments"),
-                    DvcsError::InvalidArguments => write!(f, "Invalid arguments"),
+// Implementing the Display trait for DvcsError 
+impl fmt::Display for DvcsError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            // These are errors related to the DVCS initialization commands (init, clone)
+            DvcsError::InvalidCommand => write!(f, "Invalid command"),
+            DvcsError::InvalidNumberOfArguments => write!(f, "Invalid number of arguments"),
+            DvcsError::InvalidArguments => write!(f, "Invalid arguments"),
+            DvcsError::InvalidPath => write!(f, "Invalid path"),
+            DvcsError::DuplicateRepositoryError => write!(f, "Duplicated repository name"),
+            DvcsError::CopyFilesError => write!(f, "Error copying files"),
+            DvcsError::CloneError => write!(f, "Error cloning repository"),
+            DvcsError::InvalidMetadataError => write!(f, "Unable to read metadata for the repository"),
 
-                    // TO DO: add more error types as needed
-                }
-            }
+            // TODO: add more error types and/or fix the error messages as needed
+            DvcsError::AddError => write!(f, "Error adding files"),
+            DvcsError::CommitError => write!(f, "Error committing files"),
+            DvcsError::PushError => write!(f, "Error pushing files"),
+            DvcsError::PullError => write!(f, "Error pulling files"),
+            DvcsError::MergeError => write!(f, "Error merging files"),
+            DvcsError::CheckoutError => write!(f, "Error checking out files"),
+            DvcsError::RemoveError => write!(f, "Error removing files"),
+            DvcsError::LogError => write!(f, "Error logging files"),
+            DvcsError::StatusError => write!(f, "Error checking status of files"),
+            DvcsError::CatError => write!(f, "Error catting files"),
+            DvcsError::DiffError => write!(f, "Error diffing files"),
+
+            _ => write!(f, "To be implemented"),
         }
     }
-
 }
+
+
 
 #[cfg(test)]
 mod tests {
