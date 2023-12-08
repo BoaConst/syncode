@@ -1,4 +1,8 @@
+/*
+# Module B.1 : Command Parser Module
 
+**Designer:** Helia 
+*/
 // Importing modules
 use super::repository_hiding::initialization::*;     // including DvcsCommand, DvcsError
 

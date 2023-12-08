@@ -1,3 +1,9 @@
+/*
+# Module B.3 : User Interface Module
+
+**Designer:** Helia 
+*/
+
 use super::machine_hiding;
 use super::repository_hiding::initialization::*;
 use super::repository_hiding::inspection::*;

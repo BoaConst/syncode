@@ -1,4 +1,8 @@
+/*
+# Module B.2 : Error Handling Module
 
+**Designer:** Helia 
+*/
 
 // Importing modules
 use std::error::Error;
