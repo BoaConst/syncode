@@ -1,45 +1,46 @@
-#![allow(warnings, unused)]
+mod cli;
+mod repository;
+mod utils;
+mod errors;
 
-pub mod machine_hiding;
-pub mod user_hiding;
-pub mod repository_hiding;
-use clap::{Command, Arg};
-
+use std::path::Path;
+use crate::cli::build_cli;
 
 fn main() {
-    let matches = Command::new("Prototype")
-        .version("1.0")
-        .about("DVCS")
-        .author("SynCode")
-        .subcommand(
-            Command::new("init")
-                .about("Initialize repository")
-                .arg(Arg::new("directory").help("path directory").required(false))
-            // false with cwd default in implementation
-        )
-        .subcommand(
-            Command::new("clone")
-                .about("Clone a repository")
-                .arg(Arg::new("src").help("The source repository").required(true))
-                .arg(Arg::new("dst").help("The destination repository").required(false))
-        ).get_matches();
+    let matches = build_cli().get_matches();
 
     match matches.subcommand() {
-        Some(("init", init_matches)) => {
-            let mut args = Vec::new();
-            let mut directory = String::new();
-            if init_matches.args_present() {
-                directory = init_matches.get_one::<String>("directory").unwrap().to_string();
-            } else {
-                directory = machine_hiding::file_system_operations::get_cwd();
+        Some(("init", sub_m)) => {
+            let repo_path = sub_m.value_of("directory").unwrap_or(".");
+            match repository::init(Path::new(repo_path)) {
+                Ok(()) => println!("Repository initialized at {}", repo_path),
+                Err(e) => eprintln!("Error initializing repository: {}", e),
             }
-            args.push(&directory);
-            user_hiding::command_parser::command("init".to_string(), args)
         }
-        Some(("clone", _clone_matches)) => {
-            todo!()
+        Some(("add", sub_m)) => {
+            let repo_path = Path::new(".");
+            let files: Vec<String> = sub_m.values_of("files").unwrap().map(String::from).collect();
+            match repository::add(&repo_path, files) {
+                Ok(()) => println!("Files added to tracking."),
+                Err(e) => eprintln!("Error: {}", e),
+            }
         }
-        None => println!("No subcommand was used"),
-        _ => unreachable!(),
+        Some(("remove", sub_m)) => {
+            let repo_path = Path::new(".");
+            let file = sub_m.value_of("file").unwrap().to_string();
+            match repository::remove(&repo_path, file) {
+                Ok(()) => println!("File removed from tracking."),
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Some(("commit", sub_m)) => {
+            let repo_path = Path::new(".");
+            let message = sub_m.value_of("message").unwrap().to_string();
+            match repository::commit(&repo_path, message) {
+                Ok(()) => println!("Changes committed."),
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        _ => {}
     }
 }
