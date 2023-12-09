@@ -66,3 +66,51 @@ pub fn commit(repo_path: &Path, message: String) -> Result<(), DvcsError> {
     Ok(())
 }
 
+
+pub fn status(repo_path: &Path) -> Result<(), DvcsError> {
+    let state_file_path = repo_path.join(".dvcs_state");
+    let state: RepoState = serde_json::from_str(&utils::read_file_to_string(&state_file_path)?)?;
+
+    let mut tracked_files = state.tracked_files;
+    let mut untracked_files = Vec::new();
+
+    // List all files in repo_path and compare with tracked_files
+    for entry in fs::read_dir(repo_path)? {
+        let path = entry?.path();
+        if path.is_file() {
+            let path_str = path.to_string_lossy().into_owned();
+            if !tracked_files.contains(&path_str) {
+                untracked_files.push(path_str);
+            } else {
+                // Remove from tracked_files to find modified files later
+                tracked_files.retain(|p| p != &path_str);
+            }
+        }
+    }
+
+    println!("Tracked files:");
+    for file in tracked_files {
+        println!("{}", file);
+    }
+
+    println!("\nUntracked files:");
+    for file in untracked_files {
+        println!("{}", file);
+    }
+
+    Ok(())
+}
+
+pub fn log(repo_path: &Path) -> Result<(), DvcsError> {
+    let log_file_path = repo_path.join(".dvcs_log");
+
+    if !log_file_path.exists() {
+        println!("No commit history found.");
+        return Ok(());
+    }
+
+    let log_contents = utils::read_file_to_string(&log_file_path)?;
+    println!("Commit history:\n{}", log_contents);
+
+    Ok(())
+}

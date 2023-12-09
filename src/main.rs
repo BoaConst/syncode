@@ -41,6 +41,20 @@ fn main() {
                 Err(e) => eprintln!("Error: {}", e),
             }
         }
+        Some(("status", _sub_m)) => {
+            let repo_path = Path::new(".");
+            match repository::status(&repo_path) {
+                Ok(()) => {},
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
+        Some(("log", _sub_m)) => {
+            let repo_path = Path::new(".");
+            match repository::log(&repo_path) {
+                Ok(()) => {},
+                Err(e) => eprintln!("Error: {}", e),
+            }
+        }
         _ => {}
     }
 }

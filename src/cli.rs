@@ -34,4 +34,10 @@ pub fn build_cli() -> Command<'static> {
                      .help("Commit message")
                      .required(true)),
         )
+        .subcommand(
+            Command::new("status")
+                    .about("Show status of tracked and untracked files"))
+        .subcommand(
+            Command::new("log")
+                .about("Show commit history"))
 }
