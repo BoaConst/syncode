@@ -1,11 +1,192 @@
+/*
+# Module B.3 : User Interface Module
 
+**Designer:** Helia 
+*/
 
+use super::machine_hiding;
+use super::repository_hiding::initialization::*;
+use super::repository_hiding::inspection::*;
+use super::repository_hiding::staging::*;
+use super::repository_hiding::synchronization::*;
+use super::repository_hiding;
+use crate::user_hiding;
+use std::io;
+use std::io::Write;
 
-// Importing modules
-// use std::io;
-// use std::io::Write;
-// use super::repository_hiding::initialization::*;
-// // use crate::dvcs::dvcs_auth::*;
+pub fn execute_command(cmd_name: String, args: Vec<&String>) -> Result<(), DvcsError> {
+    let cwd = machine_hiding::file_system_operations::get_cwd();
+    let cmd_result = user_hiding::command_parser::parse_command(cmd_name.clone());
+    // Handle the Result returned by parse_command
+    let cmd = match cmd_result {
+        Ok(command) => command,
+        Err(err) => {
+            eprintln!("Error: {}", err.to_string());
+            return Err(err);
+        }
+    };
+
+    // validate command using command_parser::validate_command
+    match user_hiding::command_parser::validate_command(&cmd, args.clone()) {
+        Ok(()) => {}
+        Err(err) => {
+            eprintln!("Error: {}", err.to_string());
+            return Err(err);
+        }
+    }
+
+    match cmd {
+        DvcsCommand::Init => {
+            let repo_root_path = &args[0];
+            match init(repo_root_path) {
+                Ok(()) => {}
+                Err(err) => {
+                    eprintln!("Error: {}", err.to_string());
+                    return Err(err);
+                }
+            }
+        },
+        DvcsCommand::Clone => {
+            let src = &args[0];
+            let dst = &args[1];
+            match clone(src, dst) {
+                Ok(()) => {}
+                Err(err) => {
+                    eprintln!("Error: {}", err.to_string());
+                    return Err(err);
+                }
+            }
+        },
+
+        // TODO: Add and/or edit the rest of the commands as needed
+        DvcsCommand::Add => {
+            let file = &args[0];
+            match add(file) {
+                Ok(()) => {}
+                Err(err) => {
+                    eprintln!("Error: {}", err.to_string());
+                    return Err(err);
+                }
+            }
+        },
+        DvcsCommand::Commit => {
+            let message = &args[0];
+            match commit(message) {
+                Ok(()) => {}
+                Err(err) => {
+                    eprintln!("Error: {}", err.to_string());
+                    return Err(err);
+                }
+            }
+        },
+        DvcsCommand::Remove => {
+            let file = &args[0];
+            match remove(file) {
+                Ok(()) => {}
+                Err(err) => {
+                    eprintln!("Error: {}", err.to_string());
+                    return Err(err);
+                }
+            }
+        },
+        DvcsCommand::Log => {
+            match log() {
+                Ok(()) => {}
+                Err(err) => {
+                    eprintln!("Error: {}", err.to_string());
+                    return Err(err);
+                }
+            }
+        },
+        DvcsCommand::Checkout => {
+            let commit = &args[0];
+            match checkout(commit) {
+                Ok(()) => {}
+                Err(err) => {
+                    eprintln!("Error: {}", err.to_string());
+                    return Err(err);
+                }
+            }
+        },
+        DvcsCommand::Status => {
+            match status() {
+                Ok(()) => {}
+                Err(err) => {
+                    eprintln!("Error: {}", err.to_string());
+                    return Err(err);
+                }
+            }
+        },
+        DvcsCommand::Push => {
+            match push() {
+                Ok(()) => {}
+                Err(err) => {
+                    eprintln!("Error: {}", err.to_string());
+                    return Err(err);
+                }
+            }
+        },
+        DvcsCommand::Pull => {
+            match pull() {
+                Ok(()) => {}
+                Err(err) => {
+                    eprintln!("Error: {}", err.to_string());
+                    return Err(err);
+                }
+            }
+        },
+        DvcsCommand::Merge => {
+            let commit1 = &args[0];
+            let commit2 = &args[1];
+            match merge(commit1, commit2) {
+                Ok(()) => {}
+                Err(err) => {
+                    eprintln!("Error: {}", err.to_string());
+                    return Err(err);
+                }
+            }
+        },
+        DvcsCommand::Heads => {
+            match heads() {
+                Ok(()) => {}
+                Err(err) => {
+                    eprintln!("Error: {}", err.to_string());
+                    return Err(err);
+                }
+            }
+
+        },
+        DvcsCommand::Cat => {
+            let file = &args[0];
+            match cat(file) {
+                Ok(()) => {}
+                Err(err) => {
+                    eprintln!("Error: {}", err.to_string());
+                    return Err(err);
+                }
+
+            }
+        },
+        DvcsCommand::Diff => {
+            let commit1 = &args[0];
+            let commit2 = &args[1];
+            match diff(commit1, commit2) {
+                Ok(()) => {}
+                Err(err) => {
+                    eprintln!("Error: {}", err.to_string());
+                    return Err(err);
+                }
+
+            }
+        },
+        
+        _ => {
+            return Err(DvcsError::InvalidCommand);
+        },
+    }
+    Ok(())
+}
+
 
 // /// This function is used to print the DVCS prompt.
 // pub fn prompt_user() {
@@ -15,7 +196,7 @@
 
 // /// This function is used to print the DVCS help message.
 // fn print_help() {
-//     println!("init - Create an empty DVCS repository or reinitialize an existing one");
+//     println!("init - Create an empty DVCS repository in the current directory");
 //     println!("add <file> - Add a file to the DVCS repository");
 //     println!("commit <message> - Record changes to the repository");
 //     println!("remove <file> - Remove a file from the DVCS repository");

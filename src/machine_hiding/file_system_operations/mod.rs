@@ -61,6 +61,7 @@ use std::path::Path;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
+use std::io;
 
 pub fn get_cwd() -> String {
     let cwd = env::current_dir().unwrap().into_os_string().into_string().unwrap();
@@ -84,6 +85,36 @@ pub fn write_string(path: &String, name: &String, s: &String) {
     let p = Path::new(path).join(Path::new(name));
     let mut f = File::create(p).expect("failure to create file");
     f.write_all(s.as_bytes()).expect("failure to write line");
+}
+
+// Function to read from a file. Usage: for reading the metadata in repo.json file for cloning
+pub fn read_string(file_path: &str) -> Result<String, std::io::Error> {
+    // Read the content of the file as a string
+    fs::read_to_string(file_path)
+}
+
+// Function to copy a file from one location to another
+pub fn copy_file(source_file_path: &str, target_file_path: &str) -> Result<(), io::Error> {
+    // Create the target directory if it doesn't exist
+    if let parent_dir = Path::new(&target_file_path) {
+        if !parent_dir.exists() {
+            fs::File::create(&parent_dir);
+        }
+    }
+
+    // Check if the source file is a regular file
+    if let Ok(metadata) = fs::metadata(&target_file_path) {
+        if metadata.is_file() {
+            fs::copy(&source_file_path, &target_file_path);
+            Ok(())
+        } else {
+            eprintln!("{} is not a regular file", target_file_path);
+            Err(io::Error::new(io::ErrorKind::InvalidInput, "Not a regular file"))
+        }
+    } else {
+        eprintln!("Failed to get metadata for {}", target_file_path);
+        Err(io::Error::new(io::ErrorKind::InvalidInput, "Failed to get metadata"))
+    }
 }
 
 
