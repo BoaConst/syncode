@@ -66,21 +66,25 @@ pub fn execute_command(cmd_name: String, args: Vec<&String>) -> Result<(), DvcsE
             let file_rel_path = machine_hiding::file_system_operations::find_rel_path(&repo_root_path, &file_abs_path);
             println!("file rel path find at {}", file_rel_path);
             let mut r = repository_hiding::initialization::open(&repo_root_path);
-            r.add_file(&file_rel_path);
-            r.save();
+
+            match r.add_file(&file_rel_path) {
+                Ok(()) => {r.save();}
+                Err(err) => {
+                    eprintln!("Error: {}", err.to_string());
+                    return Err(err);
+                }
+            }
+            // r.add_file(&file_rel_path);
+            // r.save();
 
             println!("{}", r);
         },
-        // DvcsCommand::Commit => {
-        //     let message = &args[0];
-        //     match commit(message) {
-        //         Ok(()) => {}
-        //         Err(err) => {
-        //             eprintln!("Error: {}", err.to_string());
-        //             return Err(err);
-        //         }
-        //     }
-        // },
+        DvcsCommand::Commit => {
+            let repo_root_path = machine_hiding::file_system_operations::find_repo_root_path(&cwd);
+            let mut repo = repository_hiding::initialization::open(&repo_root_path);
+            repo.commit();
+            repo.save();
+        },
         // DvcsCommand::Remove => {
         //     let file = &args[0];
         //     match remove(file) {

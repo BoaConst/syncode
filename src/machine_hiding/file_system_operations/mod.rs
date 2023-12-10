@@ -117,6 +117,23 @@ pub fn copy_file(source_file_path: &str, target_file_path: &str) -> Result<(), i
         Err(io::Error::new(io::ErrorKind::InvalidInput, "Failed to get metadata"))
     }
 }
+
+pub fn extract_path(filename: &String) -> String {
+    let mut pbuf = PathBuf::from(filename);
+    pbuf.pop();
+    pbuf.to_string_lossy().to_string()
+}
+pub fn my_copy_file(dst_path: &String, src_path: &String, f: &String) {
+    let d = join_paths(dst_path, &f);
+    let s = join_paths(src_path, &f);
+    let d_path = extract_path(&d);
+    if !check_path(&d_path) {
+        create_dir_all(&d_path);
+    }
+    //println!("Copy {} -> {}", s, d);
+    fs::copy(&s, &d).expect("Unable to copy file");
+}
+
 pub fn is_empty_path(pbuf: &PathBuf) -> bool {
     pbuf.as_os_str() == std::ffi::OsStr::new("")
 }
@@ -128,7 +145,7 @@ pub fn find_repo_root_path(path: &String) -> String {
     let mut pbuf = PathBuf::from(path);
     while !is_empty_path(&pbuf) {
         let p = pbuf.to_string_lossy().to_string();
-        println!("p: {}", p);
+        // println!("p: {}", p);
         if check_repo_dir(&p) {
             break;
         } else {
@@ -153,10 +170,10 @@ pub fn read_line(path: &String, name: &String) -> String {
     // let mut l = String::new();
     // f.read_to_string(&mut l)?.expect("Unable to read the file");
     // l
-    println!("path at: {}", path);
-    println!("path at: {:?}", p);
+    // println!("path at: {}", path);
+    // println!("path at: {:?}", p);
     let json = fs::read_to_string(p).unwrap();
-    println!("data is: {}", json);
+    // println!("data is: {}", json);
 
     json
     // let reader = BufReader::new(f);

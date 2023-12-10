@@ -135,12 +135,7 @@ fn main() {
             user_hiding::user_interface::execute_command("remove".to_string(), args);
         }
         Some(("commit", commit_matches)) => {
-            let mut args = Vec::new();
-            let message = commit_matches.get_one::<String>("message").map_or_else(
-                || "".to_string(),
-                |m| m.to_string(),
-            );
-            args.push(&message);
+            let args = Vec::new();
             user_hiding::user_interface::execute_command("commit".to_string(), args);
         }
         Some(("log", _)) => {

@@ -90,34 +90,34 @@ pub enum DvcsError {
 }
 
 // implement Repository
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct RepoInfo {
     root_path: String,
     tracked_files: Vec<String>,
     all_revs: Vec<RevID>,
     cur_rev: RevID,
 }
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Repo {
     pub root_path: String,
     pub dev_path: String,
     repo: RepoInfo,
 }
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 struct RevInfo {
     rev_id: RevID,
     parent_trunk: RevID,
     parent_other: RevID,
     files: Vec<String>,
 }
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Rev {
     pub root_path: String,
     pub dev_path: String,
     pub rev_path: String,
     rev: RevInfo,
 }
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct RevID {
     // #[serde(rename="UUID")]
     value: uuid::Uuid,
@@ -142,7 +142,7 @@ impl fmt::Display for RepoInfo {
 impl fmt::Display for Repo {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "Root Path @ {}\n", self.root_path)?;
-        write!(f, ".arc Path @ {}\n", self.dev_path)?;
+        write!(f, ".dev Path @ {}\n", self.dev_path)?;
         write!(f, "{}\n", self.repo)?;
         Ok(())
     }
@@ -168,7 +168,7 @@ impl Repo {
         // machine_hiding::file_system_operations::write_string(&dev_path, &String::from("repo.json"), &serialized);
     }
 
-    pub fn add_file(&mut self, rel_path: &String) {
+    pub fn add_file(&mut self, rel_path: &String)-> Result<(), DvcsError> {
 
         let full_path = machine_hiding::file_system_operations::join_paths(&self.root_path, rel_path);
         assert!(machine_hiding::file_system_operations::check_path(&full_path), "File doesn't exist!");
@@ -178,47 +178,77 @@ impl Repo {
         }
 
         println!("Added to tracked files @ {}", rel_path);
+        Ok(())
     }
 
-    // pub fn commit(&mut self) -> repository_hiding::initialization::Rev {
-    //     let mut rev = repository_hiding::initialization::new_rev(self, &self.repo.cur_rev, &repository_hiding::initialization::revid::EMPTY);
-    //
-    //     rev.commit(&self.repo.tracked_files);
-    //     rev.save();
-    //
-    //     self.add_rev(rev.get_id());
-    //     self.set_head_rev(rev.get_id());
-    //     self.save();
-    //
-    //     println!("Committed -> {}", rev.get_id());
-    //     rev
-    // }
+    pub fn set_head_rev(&mut self, rev_id: &RevID) {
+        self.repo.cur_rev = rev_id.clone();
+    }
+
+    pub fn add_rev(&mut self, rev_id: &RevID) {
+        self.repo.all_revs.push(rev_id.clone());
+    }
+
+    pub fn commit(&mut self) -> repository_hiding::initialization::Rev {
+        let mut rev = repository_hiding::initialization::new_rev(self, &self.repo.cur_rev, &EMPTY);
+
+        rev.commit(&self.repo.tracked_files);
+        rev.save();
+
+        self.add_rev(rev.get_id());
+        self.set_head_rev(rev.get_id());
+        self.save();
+
+        println!("Committed -> {}", rev.get_id());
+        rev
+    }
 }
 
+impl Rev {
+    pub fn commit(&mut self, tracked_files: &Vec<String>) -> Vec<String> {
+        let mut missing_files = Vec::new();
+        for f_rel_path in tracked_files {
+            if machine_hiding::file_system_operations::check_path(&machine_hiding::file_system_operations::join_paths(&self.root_path, &f_rel_path)) {
+                machine_hiding::file_system_operations::my_copy_file(&self.rev_path, &self.root_path, f_rel_path);
+                self.rev.files.push(f_rel_path.clone());
+            } else {
+                missing_files.push(f_rel_path.clone());
+            }
+        }
+        missing_files
+    }
+    pub fn get_id(&self) -> &RevID {
+        &self.rev.rev_id
+    }
+    pub fn save(&self) {
+        let serialized = serde_json::to_string(&self.rev).unwrap();
+        machine_hiding::file_system_operations::write_string(&self.rev_path, &String::from("rev.json"), &serialized);
+    }
+}
 pub fn new_revID() -> RevID {
     RevID {
         value: Uuid::new_v4()
     }
 }
 
-// pub fn new_rev(repo: &Repo, &trunk_id: RevID, &other_id: RevID) -> Rev {
-//     let rev = RevInfo {
-//         rev_id: new_revID(),
-//         parent_trunk: trunk_id.clone(),
-//         parent_other: other_id.clone(),
-//         files: Vec::new(),
-//     };
-//
-//     let rev_path = machine_hiding::file_system_operations::join_paths(&repo.dev_path, &rev.rev_id.to_string());
-//     machine_hiding::file_system_operations::create_dir_all(&rev_path);
-//
-//     Rev {
-//         root_path: repo.root_path.clone(),
-//         dev_path: repo.dev_path.clone(),
-//         rev_path: rev_path.clone(),
-//         rev: rev
-//     }
-// }
+pub fn new_rev(repo: &Repo, trunk_id: &RevID, other_id: &RevID) -> Rev {
+        let rev = RevInfo {
+            rev_id: new_revID(),
+            parent_trunk: trunk_id.clone(),
+            parent_other: other_id.clone(),
+            files: Vec::new(),
+        };
+
+        let rev_path = machine_hiding::file_system_operations::join_paths(&repo.dev_path, &rev.rev_id.to_string());
+        machine_hiding::file_system_operations::create_dir_all(&rev_path);
+
+        Rev {
+            root_path: repo.root_path.clone(),
+            dev_path: repo.dev_path.clone(),
+            rev_path: rev_path.clone(),
+            rev: rev
+    }
+}
 
 
 pub fn init(root_path: &String) -> Result<(), DvcsError> {
@@ -253,16 +283,16 @@ pub fn clone(root_path: &str, url: &str) -> Result<(), DvcsError> {
 }
 pub fn open(root_path: &String) -> Repo {
     let dev_path = machine_hiding::file_system_operations::join_paths(root_path, &".dvcs".to_string());
-    println!("repo at {}", dev_path);
+    // println!("repo at {}", dev_path);
     assert!(machine_hiding::file_system_operations::check_path(&dev_path), "Repo doesn't exist!");
 
     let repo_path = machine_hiding::file_system_operations::join_paths(root_path, &"repo.json".to_string());
-    println!("repo json at {}", repo_path);
+    // println!("repo json at {}", repo_path);
     let json = machine_hiding::file_system_operations::read_line(&dev_path, &String::from("repo.json"));
 
 
-    println!("json includes: {}", json);
-    println!("ready to load");
+    // println!("json includes: {}", json);
+    // println!("ready to load");
     let repo: RepoInfo = serde_json::from_str(&json).unwrap();
 
     Repo {
