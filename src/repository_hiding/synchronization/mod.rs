@@ -300,7 +300,6 @@ fn find_file_index(merged_changes: &Vec<Change>, file_path: &str) -> Option<usiz
 //         let remote_repo = create_remote_repo("https://example.com/repo.git");
 //         let result = SynchronizationModule::push(&local_repo, &remote_repo);
 //         assert_eq!(result.is_ok(), true);
-
 //         // Test ID: 6
 //         // Test pushing changes to an invalid remote repository.
 //         let invalid_remote_repo = create_remote_repo("https://invalid.example.com/repo.git");
