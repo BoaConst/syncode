@@ -6,7 +6,7 @@
 
 use std::fs;
 use std::path::Path;
-use crate::machine_hiding;
+use crate::{machine_hiding, repository_hiding};
 use uuid::Uuid;
 use uuid;
 use std::fmt;
@@ -155,9 +155,12 @@ impl Repo {
 
     }
     pub fn save(&self) {
-        let serialized = serde_json::to_string(&self.root_path).unwrap();
-        let dev_path = machine_hiding::file_system_operations::join_paths(&self.root_path, &".dvcs".to_string());
-        machine_hiding::file_system_operations::write_string(&dev_path, &String::from("repo.json"), &serialized);
+        let serialized = serde_json::to_string(&self.repo).unwrap();
+        machine_hiding::file_system_operations::write_string(&self.dev_path, &String::from("repo.json"), &serialized);
+
+        // let serialized = serde_json::to_string(&self.root_path).unwrap();
+        // let dev_path = machine_hiding::file_system_operations::join_paths(&self.root_path, &".dvcs".to_string());
+        // machine_hiding::file_system_operations::write_string(&dev_path, &String::from("repo.json"), &serialized);
     }
 
     pub fn add_file(&mut self, rel_path: &String) {
@@ -171,8 +174,46 @@ impl Repo {
 
         println!("Added to tracked files @ {}", rel_path);
     }
+
+    // pub fn commit(&mut self) -> repository_hiding::initialization::Rev {
+    //     let mut rev = repository_hiding::initialization::new(self, &self.repo.cur_rev, &repository_hiding::initialization::revid::EMPTY);
+    //
+    //     rev.commit(&self.repo.tracked_files);
+    //     rev.save();
+    //
+    //     self.add_rev(rev.get_id());
+    //     self.set_head_rev(rev.get_id());
+    //     self.save();
+    //
+    //     println!("Committed -> {}", rev.get_id());
+    //     rev
+    // }
 }
 
+pub fn new_revID() -> RevID {
+    RevID {
+        value: Uuid::new_v4()
+    }
+}
+
+// pub fn new(repo: &Repo, trunk_id: RevID, other_id: RevID) -> Rev {
+//     let rev = RevInfo {
+//         rev_id: new_revID(),
+//         parent_trunk: trunk_id.clone(),
+//         parent_other: other_id.clone(),
+//         files: Vec::new(),
+//     };
+//
+//     let rev_path = mach::join_paths(&repo.arc_path, &rev.rev_id.to_string());
+//     mach::create_dir_all(&rev_path);
+//
+//     Rev {
+//         root_path: repo.root_path.clone(),
+//         arc_path: repo.arc_path.clone(),
+//         rev_path: rev_path.clone(),
+//         rev: rev
+//     }
+// }
 
 
 pub fn init(root_path: &String) -> Repo {
@@ -207,10 +248,17 @@ pub fn clone(root_path: &str, url: &str) -> Result<(), DvcsError> {
 }
 pub fn open(root_path: &String) -> Repo {
     let dev_path = machine_hiding::file_system_operations::join_paths(root_path, &".dvcs".to_string());
+    println!("repo at {}", dev_path);
     assert!(machine_hiding::file_system_operations::check_path(&dev_path), "Repo doesn't exist!");
 
+    let repo_path = machine_hiding::file_system_operations::join_paths(root_path, &"repo.json".to_string());
+    println!("repo json at {}", repo_path);
     let json = machine_hiding::file_system_operations::read_line(&dev_path, &String::from("repo.json"));
-    let repo: RepoInfo = serde_json::from_str(&json).unwrap().expect("failed to load json into repoinfo");
+
+
+    println!("json includes: {}", json);
+    println!("ready to load");
+    let repo: RepoInfo = serde_json::from_str(&json).unwrap();
 
     Repo {
         root_path: root_path.clone(),

@@ -62,6 +62,7 @@ use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::path::PathBuf;
+use std::io::{self, BufRead, BufReader};
 
 pub fn get_cwd() -> String {
     let cwd = env::current_dir().unwrap().into_os_string().into_string().unwrap();
@@ -115,11 +116,24 @@ pub fn find_rel_path(base_path: &String, full_path: &String) -> String {
 }
 
 pub fn read_line(path: &String, name: &String) -> String {
-    let p = Path::new(path).join(Path::new(name));
-    let mut f = File::open(p).expect("Unable to open file");
-    let mut l = String::new();
+    // let p = Path::new(path).join(Path::new(name));
+    let p = Path::new(path).join(name);
+    // let mut f = File::open(p).expect("Unable to open file");
+    // let mut l = String::new();
     // f.read_to_string(&mut l)?.expect("Unable to read the file");
-    l
+    // l
+    println!("path at: {}", path);
+    println!("path at: {:?}", p);
+    let json = fs::read_to_string(p).unwrap();
+    println!("data is: {}", json);
+
+    json
+    // let reader = BufReader::new(f);
+    //
+    // // Read the contents of the file into a String
+    // let file_contents: String = reader.lines().collect::<Result<_, _>>()?;
+    // file_contents
+
 }
 
 
