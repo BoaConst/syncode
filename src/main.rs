@@ -1,14 +1,16 @@
-/*
-potential solution for command parsing and syntax error handling
-require "cargo add clap" to compile
-*/
+#![allow(warnings, unused)]
 
-mod repo;
+pub mod machine_hiding;
+pub mod user_hiding;
+pub mod repository_hiding;
+use clap::{Command, Arg};
+use uuid;
+use serde;
+use serde_json;
 
-use clap::{Command, Arg, arg};
 
 fn main() {
-    let matches = Command::new("arc")
+    let matches = Command::new("Prototype")
         .version("1.0")
         .about("DVCS")
         .author("SynCode")
@@ -19,12 +21,6 @@ fn main() {
             // false with cwd default in implementation
         )
         .subcommand(
-            Command::new("print")
-                .about("Prints a repository")
-                .arg(Arg::new("path").help("The repository user wants to print").required(false)),
-            // false with cwd default in implementation
-        )
-        .subcommand(
             Command::new("clone")
                 .about("Clone a repository")
                 .arg(Arg::new("src").help("The source repository").required(true))
@@ -32,98 +28,49 @@ fn main() {
         )
         .subcommand(
             Command::new("add")
-                .about("Add specific files that user wants to track")
-                .arg(Arg::new("path").help("Path of the added file").required(true))
+                .about("Add a file to the staging area")
+                .arg(Arg::new("file").help("The file to add").required(true))
         )
-        .subcommand(
-            Command::new("remove")
-                .about("Remove specific files from tracking list")
-                .arg(Arg::new("path").help("Path of the removed file").required(true))
-        )
-        .subcommand(
-            Command::new("heads")
-                .about("Show the current heads")
-        )
-        .subcommand(
-            Command::new("diff")
-                .about("Check the changes between revisions")
-        )
-        .subcommand(
-            Command::new("cat")
-                .about("Inspect a file of a given revision")
-                .arg(Arg::new("path").help("File path of inspected file").required(true))
-        )
-        .subcommand(
-            Command::new("checkout")
-                .about("Check out a specific revision")
-                .arg(Arg::new("rev").help("Revision to checkout to").required(true))
-        )
-        .subcommand(
-            Command::new("commit")
-                .about("Commit changes")
-        )
-        .subcommand(
-            Command::new("merge")
-                .about("Merge two revisions")
-                .arg(Arg::new("rev1").help("First revision to merge").required(true))
-                .arg(Arg::new("rev2").help("Second revision to merge").required(true))
-        )
-        .subcommand(
-            Command::new("push")
-                .about("Push changes")
-        )
-        .subcommand(
-            Command::new("pull")
-                .about("Pull changes")
-        )
+        // .subcommand(
+        //     Command::new("remove")
+        //         .about("Remove a file from the staging area")
+        //         .arg(Arg::new("file").help("The file to remove").required(true))
+        // )
+        // .subcommand(
+        //     Command::new("commit")
+        //         .about("Commit the staged files")
+        //         .arg(Arg::new("message").help("The commit message").required(false))
+        // )
         .get_matches();
 
     match matches.subcommand() {
         Some(("init", init_matches)) => {
+            let mut args = Vec::new();
+            let mut directory = String::new();
+            if init_matches.args_present() {
+                directory = init_matches.get_one::<String>("directory").unwrap().to_string();
+            } else {
+                directory = machine_hiding::file_system_operations::get_cwd();
+            }
+            args.push(&directory);
+            user_hiding::command_parser::command("init".to_string(), args)
+        }
+        Some(("clone", _clone_matches)) => {
             todo!()
-            /*
-            check root conflict handling
+        }
 
-            */
-        }
-        Some(("print", print_matches)) => {
-            todo!()
-        }
-        Some(("clone", clone_matches)) => {
-            todo!()
-        }
         Some(("add", add_matches)) => {
-            todo!()
-        }
-        Some(("remove", remove_matches)) => {
-            todo!()
-        }
-        Some(("heads", heads_matches)) => {
-            todo!()
-        }
-        Some(("diff", diff_matches)) => {
-            todo!()
-        }
-        Some(("cat", cat_matches)) => {
-            todo!()
-        }
-        Some(("checkout", checkout_matches)) => {
-            todo!()
-        }
-        Some(("commit", commit_matches)) => {
-            todo!()
-        }
-        Some(("merge", merge_matches)) => {
-            todo!()
-        }
-        Some(("push", push_matches)) => {
-            todo!()
-        }
-        Some(("pull", pull_matches)) => {
-            todo!()
-        }
+                let mut args = Vec::new();
+                let mut path = String::new();
+                if add_matches.args_present() {
+                    path = add_matches.get_one::<String>("file").unwrap().to_string();;
+                }
+                args.push(&path);
+                user_hiding::command_parser::command("add".to_string(), args);
+            }
+
+
         None => println!("No subcommand was used"),
         _ => unreachable!(),
     }
 }
-
