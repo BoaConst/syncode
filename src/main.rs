@@ -121,8 +121,11 @@ fn main() {
         }
         Some(("add", add_matches)) => {
             let mut args = Vec::new();
-            let file = add_matches.get_one::<String>("file").unwrap().to_string();
-            args.push(&file);
+                let mut path = String::new();
+                if add_matches.args_present() {
+                    path = add_matches.get_one::<String>("file").unwrap().to_string();;
+                }
+            args.push(&path);
             user_hiding::user_interface::execute_command("add".to_string(), args);
         }
         Some(("remove", remove_matches)) => {
