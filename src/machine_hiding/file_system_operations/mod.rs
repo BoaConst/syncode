@@ -124,14 +124,19 @@ pub fn extract_path(filename: &String) -> String {
     pbuf.to_string_lossy().to_string()
 }
 pub fn my_copy_file(dst_path: &String, src_path: &String, f: &String) {
+    println!("{}", dst_path);
     let d = join_paths(dst_path, &f);
     let s = join_paths(src_path, &f);
     let d_path = extract_path(&d);
     if !check_path(&d_path) {
         create_dir_all(&d_path);
     }
+    let destination_file_path = Path::new(dst_path)
+        .join(Path::new(f).file_name().unwrap());
+    println!("{}", destination_file_path.display().to_string());
     //println!("Copy {} -> {}", s, d);
-    fs::copy(&s, &d).expect("Unable to copy file");
+    println!("ready to copy from {} -> {}", f, destination_file_path.display().to_string());
+    fs::copy(&Path::new(f), destination_file_path).expect("Unable to copy file");
 }
 
 pub fn is_empty_path(pbuf: &PathBuf) -> bool {
@@ -151,7 +156,7 @@ pub fn find_repo_root_path(path: &String) -> String {
         } else {
             pbuf.pop();
         }
-    }
+   }
     pbuf.to_string_lossy().to_string()
 }
 pub fn find_rel_path(base_path: &String, full_path: &String) -> String {

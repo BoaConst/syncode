@@ -168,16 +168,16 @@ impl Repo {
         // machine_hiding::file_system_operations::write_string(&dev_path, &String::from("repo.json"), &serialized);
     }
 
-    pub fn add_file(&mut self, rel_path: &String)-> Result<(), DvcsError> {
+    pub fn add_file(&mut self, abs_path: &String)-> Result<(), DvcsError> {
 
-        let full_path = machine_hiding::file_system_operations::join_paths(&self.root_path, rel_path);
+        let full_path = machine_hiding::file_system_operations::join_paths(&self.root_path, abs_path);
         assert!(machine_hiding::file_system_operations::check_path(&full_path), "File doesn't exist!");
 
-        if !self.repo.tracked_files.contains(rel_path) {
-            self.repo.tracked_files.push(rel_path.clone());
+        if !self.repo.tracked_files.contains(abs_path) {
+            self.repo.tracked_files.push(abs_path.clone());
         }
 
-        println!("Added to tracked files @ {}", rel_path);
+        println!("Added to tracked files @ {}", abs_path);
         Ok(())
     }
 
@@ -208,7 +208,8 @@ impl Rev {
     pub fn commit(&mut self, tracked_files: &Vec<String>) -> Vec<String> {
         let mut missing_files = Vec::new();
         for f_rel_path in tracked_files {
-            if machine_hiding::file_system_operations::check_path(&machine_hiding::file_system_operations::join_paths(&self.root_path, &f_rel_path)) {
+            // if machine_hiding::file_system_operations::check_path(&machine_hiding::file_system_operations::join_paths(&self.root_path, &f_rel_path)) {
+            if machine_hiding::file_system_operations::check_path(f_rel_path) {
                 machine_hiding::file_system_operations::my_copy_file(&self.rev_path, &self.root_path, f_rel_path);
                 self.rev.files.push(f_rel_path.clone());
             } else {
