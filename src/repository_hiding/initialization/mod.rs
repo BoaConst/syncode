@@ -202,6 +202,27 @@ impl Repo {
         println!("Committed -> {}", rev.get_id());
         rev
     }
+
+    pub fn new(repository_name: &str) -> Repo {
+
+        let dev_path = machine_hiding::file_system_operations::join_paths(&repository_name.to_string(), &".dvcs".to_string());
+        
+        let repo = RepoInfo {
+            root_path: repository_name.to_string().clone(),
+            tracked_files: Vec::new(),
+            all_revs: Vec::new(),
+            cur_rev: EMPTY
+        };
+    
+        let r = Repo {
+            root_path: repository_name.to_string().clone(),
+            dev_path: dev_path.clone(),
+            repo: repo
+        };
+
+        return r;
+
+    }
 }
 
 impl Rev {
@@ -261,20 +282,8 @@ pub fn init(root_path: &String) -> Result<(), DvcsError> {
     assert!(!machine_hiding::file_system_operations::check_path(&dev_path), "Repo already initialized!");
     machine_hiding::file_system_operations::create_dir_all(&dev_path);
 
-    let repo = RepoInfo {
-        root_path: root_path.clone(),
-        tracked_files: Vec::new(),
-        all_revs: Vec::new(),
-        cur_rev: EMPTY
-    };
-
-    let r = Repo {
-        root_path: root_path.clone(),
-        dev_path: dev_path.clone(),
-        repo: repo
-    };
-
-    r.save();
+    let repo = Repo::new(&root_path);
+    repo.save();
     println!("Initialized repo @ {}", root_path);
     Ok(())
 }
@@ -322,7 +331,7 @@ mod tests {
     // Test ID: 2
     #[test]
     fn test_repository_clone_invalid_path() {
-        let repository = Repository::new("destination_repo");
+        let repository = Repo::new("destination_repo");
         let invalid_source_repository = "invalid_source_repo";
 
         // Attempt cloning from an invalid path
@@ -336,7 +345,7 @@ mod tests {
     #[test]
     fn test_repository_save() {
         let cwd = machine_hiding::file_system_operations::get_cwd();
-        let mut repository = Repository::new(&cwd);
+        let mut repository = Repo::new(&cwd);
 
         // Mock data
         repository.commits.push("commit1".to_string());
