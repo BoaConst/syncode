@@ -55,41 +55,6 @@ mod inspection_module {
     }
 }
 
-pub fn diff(content1: &str, content2: &str) -> Vec<String> {
-    // Split content into lines
-    let old_lines: Vec<&str> = content1.lines().collect();
-    let new_lines: Vec<&str> = content2.lines().collect();
-
-    // Perform a simple line-based diff
-    let mut changes = Vec::new();
-
-    let mut i = 0;
-    let mut j = 0;
-
-    while i < old_lines.len() && j < new_lines.len() {
-        if old_lines[i] != new_lines[j] {
-            // Lines are different, record the change
-            changes.push(format!("Change at line {}: {}", i + 1, new_lines[j]));
-        }
-        i += 1;
-        j += 1;
-    }
-
-    // Handle remaining lines in old or new content
-    while i < old_lines.len() {
-        changes.push(format!("Delete at line {}: {}", i + 1, old_lines[i]));
-        i += 1;
-    }
-
-    while j < new_lines.len() {
-        changes.push(format!("Insert at line {}: {}", j + 1, new_lines[j]));
-        j += 1;
-    }
-
-    changes
-}
-
-
 #[cfg(test)]
 mod tests {
     use super::inspection_module::*;
