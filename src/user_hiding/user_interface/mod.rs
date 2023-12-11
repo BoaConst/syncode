@@ -59,6 +59,118 @@ pub fn execute_command(cmd_name: String, args: Vec<&String>) -> Result<(), DvcsE
         },
 
         // TODO: Add and/or edit the rest of the commands as needed
+        // DvcsCommand::Add => {
+        //     let file = &args[0];
+        //     match add(file) {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Commit => {
+        //     let message = &args[0];
+        //     match commit(message) {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Remove => {
+        //     let file = &args[0];
+        //     match remove(file) {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Log => {
+        //     match log() {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Checkout => {
+        //     let commit = &args[0];
+        //     match checkout(commit) {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Status => {
+        //     match status() {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Push => {
+        //     match push() {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Pull => {
+        //     match pull() {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Merge => {
+        //     let commit1 = &args[0];
+        //     let commit2 = &args[1];
+        //     match merge(commit1, commit2) {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Heads => {
+        //     match heads() {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+
+        // },
+        // DvcsCommand::Cat => {
+        //     let file = &args[0];
+        //     match cat(file) {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+
+        //     }
+        // },
+        // DvcsCommand::Diff => {
+        //     let commit1 = &args[0];
+        //     let commit2 = &args[1];
+        //     match diff(commit1, commit2) {
         DvcsCommand::Add => {
             let file_abs_path = machine_hiding::file_system_operations::join_paths(&cwd, &args[0]);
             // println!("abs path at {}", file_abs_path);

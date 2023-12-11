@@ -103,7 +103,7 @@ pub fn copy_file(source_file_path: &str, target_file_path: &str) -> Result<(), i
         }
     }
 
-    // Check if the source file is a regular file
+    // Check if the target file is a regular file
     if let Ok(metadata) = fs::metadata(&target_file_path) {
         if metadata.is_file() {
             fs::copy(&source_file_path, &target_file_path);

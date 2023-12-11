@@ -27,19 +27,47 @@ pub struct Repository {
     // repository name
     name: String,
     // repository path
-    path: String,
+    root_path: String,
     // repository files
-    files: Vec<String>,
+    tracked_files: Vec<String>,
     // repository commits
     commits: Vec<String>,
 
     branches: Vec<String>,
 
+    // merged from RepoInfo by Demin's
+    all_revs: Vec<RevID>,
+    cur_rev: RevID,
+
 }  
 
-// @todo: implement this as used in user_hiding::authentication_manager
-pub struct RepositoryConfig {}
+// #[derive(Serialize, Deserialize, Debug, Clone)]
+// struct RevInfo {
+//     rev_id: RevID,
+//     parent_trunk: RevID,
+//     parent_other: RevID,
+//     files: Vec<String>,
+// }
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Rev {
+    pub root_path: String,
+    pub dev_path: String,
+    pub rev_path: String,
+    
+    // rev: RevInfo,
+    rev_id: RevID,
+    parent_trunk: RevID,
+    parent_other: RevID,
+    files: Vec<String>,
+}
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct RevID {
+    // #[serde(rename="UUID")]
+    value: uuid::Uuid,
+}
+
+pub const EMPTY: RevID = RevID { value: Uuid::nil() };
 
 /// This enum type is used to represent the DVCS functionalities.
 /// used in the CommandParser module to parse the user input and in the interface module to execute the DVCS commands.
@@ -93,6 +121,26 @@ pub enum DvcsError {
     // TODO: add more error types as needed
 }
 
+// // Implement Serialize for RevID
+// impl Serialize for RevID {
+//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+//     where
+//         S: serde::Serializer,
+//     {
+//         self.value.to_string().serialize(serializer)
+//     }
+// }
+// Implement FromStr for RevID
+impl std::str::FromStr for RevID {
+    type Err = uuid::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(RevID {
+            value: Uuid::from_str(s)?,
+        })
+    }
+}
+
 // implement Repository
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct RepoInfo {
@@ -140,6 +188,7 @@ impl fmt::Display for RepoInfo {
         write!(f, "Tracked files:\n")?;
         for l in &self.tracked_files {
             write!(f, "  {}\n", l)?;
+
         }
         Ok(())
     }
@@ -195,6 +244,7 @@ impl Repo {
 
     pub fn remove_file(&mut self, rel_path: &String) {
         self.repo.tracked_files.retain(|x| x != rel_path);
+
 
         let full_path = machine_hiding::file_system_operations::join_paths(&self.root_path, rel_path);
         if machine_hiding::file_system_operations::check_path(&full_path) {
@@ -277,7 +327,6 @@ impl Repo {
         return r;
 
     }
-
 
     pub fn merge(&mut self, trunk_id: &RevID, other_id: &RevID) -> Result<Rev, DvcsError> {
         if (!self.repo.all_revs.contains(trunk_id) || !self.repo.all_revs.contains(other_id)) {
@@ -445,7 +494,6 @@ pub fn new_rev(repo: &Repo, trunk_id: &RevID, other_id: &RevID) -> Rev {
 
         let rev_path = machine_hiding::file_system_operations::join_paths(&repo.dev_path, &rev.rev_id.to_string());
         machine_hiding::file_system_operations::create_dir_all(&rev_path);
-
         Rev {
             root_path: repo.root_path.clone(),
             dev_path: repo.dev_path.clone(),
@@ -513,7 +561,6 @@ pub fn open(root_path: &String) -> Repo {
     // println!("json includes: {}", json);
     // println!("ready to load");
     let repo: RepoInfo = serde_json::from_str(&json).unwrap();
-
     Repo {
         root_path: root_path.clone(),
         dev_path: dev_path.clone(),
