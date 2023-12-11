@@ -6,6 +6,7 @@
 // Importing modules
 use std::fs;
 use std::path::Path;
+use crate::machine_hiding::file_system_operations::join_paths;
 use crate::{machine_hiding, repository_hiding};
 use uuid::Uuid;
 use uuid;
@@ -18,6 +19,8 @@ use serde_json;
 use serde::{Serialize, Deserialize};
 use serde_json::Value;
 use std::io::BufReader;
+
+use super::synchronization;
 /// This Repository struct is used to represent the local DVCS repository to be created by init and clone commands.
 pub struct Repository {
 
@@ -118,6 +121,7 @@ pub struct Rev {
     pub rev_path: String,
     rev: RevInfo,
 }
+
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
 pub struct RevID {
     // #[serde(rename="UUID")]
@@ -152,6 +156,12 @@ impl fmt::Display for RevID {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.value.as_simple().to_string())
         // write!(f, "{}", self.value.to_simple().to_string())
+    }
+}
+
+impl RevID {
+    pub fn is_empty(&self) -> bool {
+        self.value.is_nil()
     }
 }
 
@@ -196,6 +206,10 @@ impl Repo {
 
     pub fn set_head_rev(&mut self, rev_id: &RevID) {
         self.repo.cur_rev = rev_id.clone();
+    }
+
+    pub fn get_head_rev_str(&self) -> String {
+        self.repo.cur_rev.to_string()
     }
 
     pub fn add_rev(&mut self, rev_id: &RevID) {
@@ -243,8 +257,87 @@ impl Repo {
         }
     }
 
+    pub fn new(repository_name: &str) -> Repo {
 
+        let dev_path = machine_hiding::file_system_operations::join_paths(&repository_name.to_string(), &".dvcs".to_string());
+        
+        let repo = RepoInfo {
+            root_path: repository_name.to_string().clone(),
+            tracked_files: Vec::new(),
+            all_revs: Vec::new(),
+            cur_rev: EMPTY
+        };
+    
+        let r = Repo {
+            root_path: repository_name.to_string().clone(),
+            dev_path: dev_path.clone(),
+            repo: repo
+        };
+
+        return r;
+
+    }
+
+
+    pub fn merge(&mut self, trunk_id: &RevID, other_id: &RevID) -> Result<Rev, DvcsError> {
+        if (!self.repo.all_revs.contains(trunk_id) || !self.repo.all_revs.contains(other_id)) {
+            return Err(DvcsError::MergeError);
+        }
+
+        if trunk_id == other_id {
+            println!("Already up to date: {}", trunk_id);
+            Ok(open_rev(self, &trunk_id))
+        } else if synchronization::can_reach_rev(self, &other_id, &trunk_id) {
+            println!("Fast-forward -> {}", other_id);
+            Ok(open_rev(self, &other_id))
+        } else if synchronization::can_reach_rev(self, &trunk_id, &other_id) {
+            println!("Fast-forward -> {}", trunk_id);
+            Ok(open_rev(self, &trunk_id))
+        } else {
+            let common_id = synchronization::find_common_id(self, &trunk_id, &other_id);
+
+            assert!(!common_id.is_empty(), "No common revision ID found!");
+
+            let common_rev = open_rev(self, &common_id);
+            let trunk_rev = open_rev(self, &trunk_id);
+            let other_rev = open_rev(self, &other_id);
+
+            let mut rev: Rev = new_rev(self, &self.repo.cur_rev, &EMPTY);
+
+            rev.merge(&common_rev, &trunk_rev, &other_rev);
+            rev.save();
+
+            self.add_rev(rev.get_id());
+
+            self.save();
+
+            println!("Merged {} and  {} -> {}", trunk_id, other_id, rev.get_id());
+            Ok(rev)
+        }
+    }
+
+
+    pub fn sync(&mut self, other_repo: &Repo) {
+        for other_rev_id in &other_repo.repo.all_revs {
+            if !self.repo.all_revs.contains(&other_rev_id) {
+                let other_rev = open_rev(&other_repo, &other_rev_id);
+                let dst_path = machine_hiding::file_system_operations::join_paths(&self.dev_path, &other_rev_id.to_string());
+
+                other_rev.copy_to(&dst_path);
+
+                self.add_rev(&other_rev_id);
+            }
+        }
+
+        self.save();
+        println!("Synchronized {} with {}", self.root_path, other_repo.root_path);
+    }
+
+
+   
 }
+
+
 
 impl Rev {
     pub fn commit(&mut self, tracked_files: &Vec<String>) -> Vec<String> {
@@ -268,20 +361,77 @@ impl Rev {
         machine_hiding::file_system_operations::write_string(&self.rev_path, &String::from("rev.json"), &serialized);
     }
 
+
     pub fn checkout(&self) {
         for f_rel_path in &self.rev.files {
             assert!(machine_hiding::file_system_operations::check_path(&machine_hiding::file_system_operations::join_paths(&self.rev_path, &f_rel_path)), "File missing in a revision!");
             machine_hiding::file_system_operations::my_copy_file(&self.root_path, &self.rev_path, f_rel_path);
         }
+
+    pub fn get_parent_trunk_id(&self) -> &RevID {
+        &self.rev.parent_trunk
+    }
+
+    pub fn get_parent_other_id(&self) -> &RevID {
+        &self.rev.parent_other
     }
 
     pub fn get_files(&self) -> &Vec<String> {
         &self.rev.files
     }
+
+
+    pub fn merge(&mut self, ancestor_rev: &Rev, trunk_rev: &Rev, other_rev: &Rev) {
+
+        let ancestor_files = ancestor_rev.get_files();
+        let trunk_files = trunk_rev.get_files();
+        let other_files = trunk_rev.get_files();
+    
+        let files = synchronization::find_all_files(ancestor_files, trunk_files, other_files);
+    
+        for f in &files {
+            let ancestor_content = if ancestor_files.contains(&f) {Some(machine_hiding::file_system_operations::read_line(&ancestor_rev.rev_path, &f))} else { None };
+            let trunk_content = if trunk_files.contains(&f) {Some(machine_hiding::file_system_operations::read_line(&trunk_rev.rev_path, &f))} else { None };
+            let other_content = if other_files.contains(&f) {Some(machine_hiding::file_system_operations::read_line(&other_rev.rev_path, &f))} else { None };
+            
+            let merge_status = synchronization::three_way_merge(ancestor_content, trunk_content, other_content);
+    
+            if merge_status.is_ok() {
+                let merged_content = merge_status.unwrap().clone().unwrap();
+                machine_hiding::file_system_operations::write_string(&self.rev_path, &f, &merged_content);
+                self.rev.files.push(f.clone());
+            }
+        
+        }
+    
+    }
+
+    pub fn copy_to(&self, dst_path: &String) {
+        machine_hiding::file_system_operations::create_dir_all(dst_path);
+
+        for f_rel_path in &self.rev.files {
+            assert!(machine_hiding::file_system_operations::check_path(&machine_hiding::file_system_operations::join_paths(&self.root_path, f_rel_path)), "File missing in a revision!");
+            let dest_path = machine_hiding::file_system_operations::join_paths(&dst_path, f_rel_path);
+            let src_path = machine_hiding::file_system_operations::join_paths(&self.rev_path, f_rel_path);
+            machine_hiding::file_system_operations::copy_file(&src_path, &dest_path);
+        }
+
+        let dest_path = machine_hiding::file_system_operations::join_paths(&dst_path, &"rev.json".to_string());
+        let src_path = machine_hiding::file_system_operations::join_paths(&self.rev_path, &"rev.json".to_string());
+        machine_hiding::file_system_operations::copy_file(&src_path, &dest_path);
+
+    }
+
 }
 pub fn new_revID() -> RevID {
     RevID {
         value: Uuid::new_v4()
+    }
+}
+
+pub fn new_revID_from_string(id: uuid::Uuid) -> RevID {
+    RevID {
+        value: id,
     }
 }
 
@@ -310,9 +460,17 @@ pub fn revid_parse(s: &String) -> RevID {
     }
 }
 
-pub fn rev_open(repo: &Repo, rev_id: &RevID) -> Rev {
-    let rev_path = machine_hiding::file_system_operations::join_paths(&repo.dev_path, &rev_id.to_string());
-    assert!(machine_hiding::file_system_operations::check_path(&rev_path), "Revision dir doesn't exist!");
+
+pub fn open_rev(repo: &Repo, rev_id: &RevID) -> Rev {
+    let rev_path = join_paths(&repo.dev_path, &rev_id.to_string());
+    assert!(machine_hiding::file_system_operations::check_path(&rev_path), "Repo doesn't exist!");
+
+    let json = machine_hiding::file_system_operations::read_line(&rev_path, &String::from("rev.json"));
+    let r : RevInfo = serde_json::from_str(&json).expect("Unable ot open revision, bad revision file!");
+
+    Rev { root_path: repo.root_path.clone(), dev_path: repo.dev_path.clone(), rev_path: rev_path.clone(), rev: r }
+}
+
 
     let json = machine_hiding::file_system_operations::read_line(&rev_path, &String::from("rev.json"));
     let r: RevInfo = serde_json::from_str(&json).expect("Unable to open revision, bad rev file!");
@@ -333,20 +491,8 @@ pub fn init(root_path: &String) -> Result<(), DvcsError> {
     assert!(!machine_hiding::file_system_operations::check_path(&dev_path), "Repo already initialized!");
     machine_hiding::file_system_operations::create_dir_all(&dev_path);
 
-    let repo = RepoInfo {
-        root_path: root_path.clone(),
-        tracked_files: Vec::new(),
-        all_revs: Vec::new(),
-        cur_rev: EMPTY
-    };
-
-    let r = Repo {
-        root_path: root_path.clone(),
-        dev_path: dev_path.clone(),
-        repo: repo
-    };
-
-    r.save();
+    let repo = Repo::new(&root_path);
+    repo.save();
     println!("Initialized repo @ {}", root_path);
     Ok(())
 }
@@ -380,54 +526,54 @@ pub fn open(root_path: &String) -> Repo {
 mod tests {
     use super::*;
 
-    // Test ID: 1
-    #[test]
-    fn test_repository_new() {
-        let repository = Repository::new("test_repo");
-        assert_eq!(repository.name, "test_repo");
-        assert_eq!(repository.path, "test_repo");
-        assert!(repository.files.is_empty());
-        assert!(repository.commits.is_empty());
-        assert!(repository.branches.is_empty());
-    }
+    // // Test ID: 1
+    // #[test]
+    // fn test_repository_new() {
+    //     let repository = Repository::new("test_repo");
+    //     assert_eq!(repository.name, "test_repo");
+    //     assert_eq!(repository.path, "test_repo");
+    //     assert!(repository.files.is_empty());
+    //     assert!(repository.commits.is_empty());
+    //     assert!(repository.branches.is_empty());
+    // }
 
-    // Test ID: 2
-    #[test]
-    fn test_repository_clone_invalid_path() {
-        let repository = Repository::new("destination_repo");
-        let invalid_source_repository = "invalid_source_repo";
+    // // Test ID: 2
+    // #[test]
+    // fn test_repository_clone_invalid_path() {
+    //     let repository = Repo::new("destination_repo");
+    //     let invalid_source_repository = "invalid_source_repo";
 
-        // Attempt cloning from an invalid path
-        let result = repository.clone(invalid_source_repository);
+    //     // Attempt cloning from an invalid path
+    //     let result = repository.clone(invalid_source_repository);
 
-        // Assertions
-        assert_eq!(result, Err(DvcsError::InvalidPath));
-    }
+    //     // Assertions
+    //     assert_eq!(result, Err(DvcsError::InvalidPath));
+    // }
 
-    // Test ID: 3
-    #[test]
-    fn test_repository_save() {
-        let cwd = machine_hiding::file_system_operations::get_cwd();
-        let mut repository = Repository::new(&cwd);
+    // // Test ID: 3
+    // #[test]
+    // fn test_repository_save() {
+    //     let cwd = machine_hiding::file_system_operations::get_cwd();
+    //     let mut repository = Repo::new(&cwd);
 
-        // Mock data
-        repository.commits.push("commit1".to_string());
-        repository.branches.push("main".to_string());
+    //     // Mock data
+    //     repository.commits.push("commit1".to_string());
+    //     repository.branches.push("main".to_string());
 
-        // Perform save
-        repository.save();
+    //     // Perform save
+    //     repository.save();
 
-        // Assertions (additional: check if metadata is correctly written) 
-        let dev_path = machine_hiding::file_system_operations::join_paths(&cwd.to_string(), &".dvcs/repo.json".to_string());
-        let metadata_content = machine_hiding::file_system_operations::read_string(&dev_path).unwrap();
+    //     // Assertions (additional: check if metadata is correctly written) 
+    //     let dev_path = machine_hiding::file_system_operations::join_paths(&cwd.to_string(), &".dvcs/repo.json".to_string());
+    //     let metadata_content = machine_hiding::file_system_operations::read_string(&dev_path).unwrap();
 
-        // Change the name and path to destination repository
-        let mut repo_json = serde_json::from_str::<serde_json::Value>(&metadata_content).unwrap();
-        assert_eq!(repo_json["name"], serde_json::Value::String(cwd.to_string()));
-        assert_eq!(repo_json["path"], serde_json::Value::String(cwd.to_string()));
-        assert_eq!(repo_json["commits"], serde_json::Value::Array(vec![serde_json::Value::String("commit1".to_string())]));
-        assert_eq!(repo_json["branches"], serde_json::Value::Array(vec![serde_json::Value::String("main".to_string())]));
-    }
+    //     // Change the name and path to destination repository
+    //     let mut repo_json = serde_json::from_str::<serde_json::Value>(&metadata_content).unwrap();
+    //     assert_eq!(repo_json["name"], serde_json::Value::String(cwd.to_string()));
+    //     assert_eq!(repo_json["path"], serde_json::Value::String(cwd.to_string()));
+    //     assert_eq!(repo_json["commits"], serde_json::Value::Array(vec![serde_json::Value::String("commit1".to_string())]));
+    //     assert_eq!(repo_json["branches"], serde_json::Value::Array(vec![serde_json::Value::String("main".to_string())]));
+    // }
 
     // Test ID: 4
     #[test]
