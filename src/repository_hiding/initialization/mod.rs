@@ -10,7 +10,7 @@ use crate::machine_hiding::file_system_operations::join_paths;
 use crate::{machine_hiding, repository_hiding};
 use uuid::Uuid;
 use uuid;
-
+use std::str::FromStr;
 use std::fmt;
 use std::io;
 use std::io::Write;
@@ -19,6 +19,7 @@ use serde_json;
 use serde::{Serialize, Deserialize};
 use serde_json::Value;
 use std::io::BufReader;
+use serde_json::json;
 
 use super::synchronization;
 /// This Repository struct is used to represent the local DVCS repository to be created by init and clone commands.
@@ -215,11 +216,106 @@ impl RevID {
 }
 
 impl Repo {
-    pub fn clone(&self, url: &str) {
-        // TO DO: implement this function
-        // 1. Clone the existing repository to the new repository
+    pub fn clone(&self, source_path: &str) -> Result<(), DvcsError> {
 
+        // 1. Check if the source repository exists
+        if !machine_hiding::file_system_operations::check_path(&source_path.to_string()) {
+            println!("Source_path: {}", source_path);
+            return Err(DvcsError::InvalidPath);
+        }
+
+        // 2. Copy files from the source repository to the new repository
+        match self.copy_repository_contents(source_path) {
+            Ok(_) => {},
+            Err(e) => {
+                return Err(e);
+            }
+        }
+
+        Ok(())
     }
+
+    // Function to copy files from the source repository to the destination repository
+    fn copy_repository_contents(&self, source_path: &str) -> Result<(), DvcsError> {
+        // Create a new repository object for the source repository
+        let mut src_repository = Repo::new(source_path);
+        src_repository.read_metadata();
+
+        // Iterate over files in the source repository and copy them to the new repository
+        for file in &src_repository.repo.tracked_files {
+            let source_file_path = machine_hiding::file_system_operations::join_paths(&source_path.to_string(), file);
+            
+            let target_file_path = machine_hiding::file_system_operations::join_paths(&self.root_path, file);
+
+            match machine_hiding::file_system_operations::copy_file(&source_file_path, &target_file_path) {
+                Ok(_) => {}
+                Err(err) => {
+                    eprintln!("Failed to copy file {}: {}", file, err);
+                    return Err(DvcsError::CopyFilesError);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    // Function to read metadata from .dvcs/repo.json into the Repository struct
+    pub fn read_metadata(&mut self) -> Result<(), DvcsError> {
+        let dev_path = machine_hiding::file_system_operations::join_paths(&self.root_path, &".dvcs/repo.json".to_string());
+
+        // Read the content of "repo.json" file
+        if let Ok(metadata) = machine_hiding::file_system_operations::read_string(&dev_path) {
+            // Deserialize the content into a serde_json::Value
+            if let Ok(repo_json) = serde_json::from_str::<serde_json::Value>(&metadata) {
+                
+                // Extract the "files" array and update the Repository struct
+                if let Some(files_json) = repo_json["tracked_files"].as_array() {
+                    self.repo.tracked_files = files_json.iter()
+                        .filter_map(|value| value.as_str())
+                        .map(String::from)
+                        .collect();
+                }
+
+                // // Extract the "commits" array and update the Repository struct
+                // if let Some(commits_json) = repo_json["commits"].as_array() {
+                //     self.commits = commits_json.iter()
+                //         .filter_map(|value| value.as_str())
+                //         .map(String::from)
+                //         .collect();
+                // }
+
+                // // Extract the "branches" array and update the Repository struct
+                // if let Some(branches_json) = repo_json["branches"].as_array() {
+                //     self.branches = branches_json.iter()
+                //         .filter_map(|value| value.as_str())
+                //         .map(String::from)
+                //         .collect();
+                // }
+
+                // Extract the "all_revs" array of RevID and update the Repository struct
+                if let Some(all_revs_json) = repo_json["all_revs"].as_array() {
+                    self.repo.all_revs = all_revs_json
+                        .iter()
+                        .filter_map(|value| RevID::from_str(value.as_str().unwrap()).ok())
+                        .collect();
+                }
+
+                // Extract the "cur_rev" string and update the Repository struct
+                if let Some(cur_rev_json) = repo_json["cur_rev"].as_str() {
+                    self.repo.cur_rev = RevID::from_str(cur_rev_json).unwrap();
+                }
+
+                Ok(())
+            } else {
+                println!("Path: {}", dev_path);
+                Err(DvcsError::InvalidMetadataError)
+            }
+        } else {
+            println!("Path: {}", dev_path);
+            Err(DvcsError::InvalidPath)
+        }
+    }
+
     pub fn save(&self) {
         let serialized = serde_json::to_string(&self.repo).unwrap();
         machine_hiding::file_system_operations::write_string(&self.dev_path, &String::from("repo.json"), &serialized);
@@ -227,6 +323,7 @@ impl Repo {
         // let serialized = serde_json::to_string(&self.root_path).unwrap();
         // let dev_path = machine_hiding::file_system_operations::join_paths(&self.root_path, &".dvcs".to_string());
         // machine_hiding::file_system_operations::write_string(&dev_path, &String::from("repo.json"), &serialized);
+
     }
 
     pub fn add_file(&mut self, abs_path: &String)-> Result<(), DvcsError> {
@@ -382,8 +479,6 @@ impl Repo {
         println!("Synchronized {} with {}", self.root_path, other_repo.root_path);
     }
 
-
-   
 }
 
 
@@ -527,25 +622,102 @@ pub fn open_rev(repo: &Repo, rev_id: &RevID) -> Rev {
 }
 
 
+pub fn clone(source_path: &str, destination: &str) -> Result<(), DvcsError> {
+    // TO DO: implement this function
+    println!("Cloning repo @ {}", source_path);
 
-pub fn init(root_path: &String) -> Result<(), DvcsError> {
-    if !machine_hiding::file_system_operations::check_path(root_path) {
-        machine_hiding::file_system_operations::create_dir_all(root_path);
+    // 1. Check if the source repository and destination repository exist
+    if !machine_hiding::file_system_operations::check_path(&source_path.to_string()) {
+        println!("Source_path: {}", source_path);
+        return Err(DvcsError::InvalidPath);
+    }
+    if !machine_hiding::file_system_operations::check_path(&destination.to_string()) {
+        println!("Destination: {}", destination);
+        return Err(DvcsError::InvalidPath);
     }
 
-    let dev_path = machine_hiding::file_system_operations::join_paths(root_path, &".dvcs".to_string());
-    assert!(!machine_hiding::file_system_operations::check_path(&dev_path), "Repo already initialized!");
-    machine_hiding::file_system_operations::create_dir_all(&dev_path);
+    // 2. Create the destination repository directory
+    let dev_path_dest = machine_hiding::file_system_operations::join_paths(&destination.to_string(), &".dvcs".to_string());
+    machine_hiding::file_system_operations::create_dir_all(&dev_path_dest);
 
-    let repo = Repo::new(&root_path);
-    repo.save();
-    println!("Initialized repo @ {}", root_path);
+    // 3. Read metadata from the source repository
+    let repo_json_path_src = machine_hiding::file_system_operations::join_paths(&source_path.to_string(), &".dvcs/repo.json".to_string());
+    if !machine_hiding::file_system_operations::check_path(&repo_json_path_src) {
+        println!("Path to repo.json metadata: {}", repo_json_path_src);
+        return Err(DvcsError::InvalidPath);
+    }
+    let repo_json_content = match machine_hiding::file_system_operations::read_string(&repo_json_path_src) {
+        Ok(content) => content,
+        Err(err) => {
+            eprintln!("Error reading {}: {}", repo_json_path_src, err);
+            return Err(DvcsError::CloneError);
+        }
+    };
+
+    // Change the name and path to destination repository
+    let mut repo_json = serde_json::from_str::<serde_json::Value>(&repo_json_content).unwrap();
+    // repo_json["name"] = serde_json::Value::String(destination.to_string());
+    repo_json["root_path"] = serde_json::Value::String(destination.to_string());
+
+    let content = serde_json::to_string_pretty(&repo_json).unwrap();
+
+    // 4. Write metadata to the destination repository
+    machine_hiding::file_system_operations::write_string(&dev_path_dest, &String::from("repo.json"), &content);
+
+    // 5. Create the Repository struct and read metadata from the destination repository
+    let mut repository = Repo::new(destination);
+    repository.read_metadata();
+
+    // 6. Clone the source repository to the new repository
+    match repository.clone(source_path) {
+        Ok(_) => {},
+        Err(err) => {
+            eprintln!("Failed to clone repository: {}", source_path);
+            return Err(DvcsError::CloneError);
+        }
+    }
+
+    println!("Cloned repo @ {}", destination);
     Ok(())
 }
 
-pub fn clone(root_path: &str, url: &str) -> Result<(), DvcsError> {
-    todo!()
+
+
+// pub fn init(root_path: &String) -> Result<(), DvcsError> {
+//     if !machine_hiding::file_system_operations::check_path(root_path) {
+//         machine_hiding::file_system_operations::create_dir_all(root_path);
+//     }
+
+//     let dev_path = machine_hiding::file_system_operations::join_paths(root_path, &".dvcs".to_string());
+//     assert!(!machine_hiding::file_system_operations::check_path(&dev_path), "Repo already initialized!");
+//     machine_hiding::file_system_operations::create_dir_all(&dev_path);
+
+//     let repo = Repo::new(&root_path);
+//     repo.save();
+//     println!("Initialized repo @ {}", root_path);
+//     Ok(())
+// }
+
+pub fn init(repository_path: &str) -> Result<(), DvcsError> {
+
+    // 1. Check if the repository already exists
+    let dev_path = machine_hiding::file_system_operations::join_paths(&repository_path.to_string(), &".dvcs".to_string());
+    if machine_hiding::file_system_operations::check_path(&dev_path) {
+        return Err(DvcsError::DuplicateRepositoryError);
+    }
+    // 2. Create the repository directory
+    machine_hiding::file_system_operations::create_dir_all(&dev_path);
+
+    // 3. Create the Repository struct and repository files
+    let mut repository = Repo::new(repository_path);
+    repository.save();
+    println!("Initialized repo @ {}", repository_path);
+    Ok(())
 }
+
+// pub fn clone(source_path: &str, destination: &str) -> Result<(), DvcsError> {
+//     // TODO 
+// }
 pub fn open(root_path: &String) -> Repo {
     let dev_path = machine_hiding::file_system_operations::join_paths(root_path, &".dvcs".to_string());
     // println!("repo at {}", dev_path);
@@ -571,54 +743,54 @@ pub fn open(root_path: &String) -> Repo {
 mod tests {
     use super::*;
 
-    // // Test ID: 1
-    // #[test]
-    // fn test_repository_new() {
-    //     let repository = Repository::new("test_repo");
-    //     assert_eq!(repository.name, "test_repo");
-    //     assert_eq!(repository.path, "test_repo");
-    //     assert!(repository.files.is_empty());
-    //     assert!(repository.commits.is_empty());
-    //     assert!(repository.branches.is_empty());
-    // }
+    // Test ID: 1
+    #[test]
+    fn test_repository_new() {
+        let repository = Repo::new("test_repo");
+        // assert_eq!(repository.name, "test_repo");
+        assert_eq!(repository.root_path, "test_repo");
+        // assert!(repository.files.is_empty());
+        // assert!(repository.commits.is_empty());
+        // assert!(repository.branches.is_empty());
+    }
 
-    // // Test ID: 2
-    // #[test]
-    // fn test_repository_clone_invalid_path() {
-    //     let repository = Repo::new("destination_repo");
-    //     let invalid_source_repository = "invalid_source_repo";
+    // Test ID: 2
+    #[test]
+    fn test_repository_clone_invalid_path() {
+        let repository = Repo::new("destination_repo");
+        let invalid_source_repository = "invalid_source_repo";
 
-    //     // Attempt cloning from an invalid path
-    //     let result = repository.clone(invalid_source_repository);
+        // Attempt cloning from an invalid path
+        let result = repository.clone(invalid_source_repository);
 
-    //     // Assertions
-    //     assert_eq!(result, Err(DvcsError::InvalidPath));
-    // }
+        // Assertions
+        assert_eq!(result, Err(DvcsError::InvalidPath));
+    }
 
-    // // Test ID: 3
-    // #[test]
-    // fn test_repository_save() {
-    //     let cwd = machine_hiding::file_system_operations::get_cwd();
-    //     let mut repository = Repo::new(&cwd);
+    // Test ID: 3
+    #[test]
+    fn test_repository_save() {
+        let cwd = machine_hiding::file_system_operations::get_cwd();
+        let mut repository = Repo::new(&cwd);
 
-    //     // Mock data
-    //     repository.commits.push("commit1".to_string());
-    //     repository.branches.push("main".to_string());
+        // Mock data
+        // repository.commits.push("commit1".to_string());
+        // repository.branches.push("main".to_string());
 
-    //     // Perform save
-    //     repository.save();
+        // Perform save
+        repository.save();
 
-    //     // Assertions (additional: check if metadata is correctly written) 
-    //     let dev_path = machine_hiding::file_system_operations::join_paths(&cwd.to_string(), &".dvcs/repo.json".to_string());
-    //     let metadata_content = machine_hiding::file_system_operations::read_string(&dev_path).unwrap();
+        // Assertions (additional: check if metadata is correctly written) 
+        let dev_path = machine_hiding::file_system_operations::join_paths(&cwd.to_string(), &".dvcs/repo.json".to_string());
+        let metadata_content = machine_hiding::file_system_operations::read_string(&dev_path).unwrap();
 
-    //     // Change the name and path to destination repository
-    //     let mut repo_json = serde_json::from_str::<serde_json::Value>(&metadata_content).unwrap();
-    //     assert_eq!(repo_json["name"], serde_json::Value::String(cwd.to_string()));
-    //     assert_eq!(repo_json["path"], serde_json::Value::String(cwd.to_string()));
-    //     assert_eq!(repo_json["commits"], serde_json::Value::Array(vec![serde_json::Value::String("commit1".to_string())]));
-    //     assert_eq!(repo_json["branches"], serde_json::Value::Array(vec![serde_json::Value::String("main".to_string())]));
-    // }
+        // Change the name and path to destination repository
+        let mut repo_json = serde_json::from_str::<serde_json::Value>(&metadata_content).unwrap();
+        // assert_eq!(repo_json["name"], serde_json::Value::String(cwd.to_string()));
+        assert_eq!(repo_json["root_path"], serde_json::Value::String(cwd.to_string()));
+        // assert_eq!(repo_json["commits"], serde_json::Value::Array(vec![serde_json::Value::String("commit1".to_string())]));
+        // assert_eq!(repo_json["branches"], serde_json::Value::Array(vec![serde_json::Value::String("main".to_string())]));
+    }
 
     // Test ID: 4
     #[test]
