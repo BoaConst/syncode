@@ -12,6 +12,11 @@ use serde::{Serialize, Deserialize};
 use std::fs;
 use std::path::Path;
 use crate::machine_hiding;
+use uuid::Uuid;
+use uuid;
+use serde_json::Value;
+use std::str::FromStr;
+
 
 /// This Repository struct is used to represent the local DVCS repository to be created by init and clone commands.
 pub struct Repository {
@@ -19,19 +24,46 @@ pub struct Repository {
     // repository name
     name: String,
     // repository path
-    path: String,
+    root_path: String,
     // repository files
-    files: Vec<String>,
+    tracked_files: Vec<String>,
     // repository commits
     commits: Vec<String>,
 
     branches: Vec<String>,
 
+    // merged from RepoInfo by Demin's
+    all_revs: Vec<RevID>,
+    cur_rev: RevID,
+
 }  
 
-// @todo: implement this as used in user_hiding::authentication_manager
-pub struct RepositoryConfig {}
+// #[derive(Serialize, Deserialize, Debug, Clone)]
+// struct RevInfo {
+//     rev_id: RevID,
+//     parent_trunk: RevID,
+//     parent_other: RevID,
+//     files: Vec<String>,
+// }
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Rev {
+    pub root_path: String,
+    pub dev_path: String,
+    pub rev_path: String,
+    // rev: RevInfo,
+    rev_id: RevID,
+    parent_trunk: RevID,
+    parent_other: RevID,
+    files: Vec<String>,
+}
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct RevID {
+    // #[serde(rename="UUID")]
+    value: uuid::Uuid,
+}
+
+pub const EMPTY: RevID = RevID { value: Uuid::nil() };
 
 /// This enum type is used to represent the DVCS functionalities.
 /// used in the CommandParser module to parse the user input and in the interface module to execute the DVCS commands.
@@ -85,16 +117,38 @@ pub enum DvcsError {
     // TODO: add more error types as needed
 }
 
+// // Implement Serialize for RevID
+// impl Serialize for RevID {
+//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+//     where
+//         S: serde::Serializer,
+//     {
+//         self.value.to_string().serialize(serializer)
+//     }
+// }
+// Implement FromStr for RevID
+impl std::str::FromStr for RevID {
+    type Err = uuid::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(RevID {
+            value: Uuid::from_str(s)?,
+        })
+    }
+}
+
 // implement Repository
 impl Repository {
     pub fn new(repository_name: &str) -> Repository {
 
         Repository {
             name: repository_name.to_string(),
-            path: format!("{}", repository_name),
-            files: Vec::new(),
+            root_path: format!("{}", repository_name),
+            tracked_files: Vec::new(),
             commits: Vec::new(),
             branches: Vec::new(),
+            all_revs: Vec::new(),
+            cur_rev: EMPTY,
         }
 
     }
@@ -127,11 +181,13 @@ impl Repository {
         // Create a serde_json::Value representing the entire struct
         let repo_json = json!({
             "name": &self.name,
-            "path": &self.path,
-            "files": &self.files,
+            "root_path": &self.root_path,
+            "tracked_files": &self.tracked_files,
             "commits": &self.commits,
             "branches": &self.branches,
             // Add other fields as needed
+            "all_revs": &self.all_revs,
+            "cur_rev": &self.cur_rev,
         });
 
         // Serialize and write the entire struct to "repo.json"
@@ -147,7 +203,7 @@ impl Repository {
         src_repository.read_metadata();
 
         // Iterate over files in the source repository and copy them to the new repository
-        for file in &src_repository.files {
+        for file in &src_repository.tracked_files {
             let source_file_path = machine_hiding::file_system_operations::join_paths(&source_path.to_string(), file);
             
             let target_file_path = machine_hiding::file_system_operations::join_paths(&self.name, file);
@@ -175,8 +231,8 @@ impl Repository {
             if let Ok(repo_json) = serde_json::from_str::<serde_json::Value>(&metadata) {
                 
                 // Extract the "files" array and update the Repository struct
-                if let Some(files_json) = repo_json["files"].as_array() {
-                    self.files = files_json.iter()
+                if let Some(files_json) = repo_json["tracked_files"].as_array() {
+                    self.tracked_files = files_json.iter()
                         .filter_map(|value| value.as_str())
                         .map(String::from)
                         .collect();
@@ -196,6 +252,19 @@ impl Repository {
                         .filter_map(|value| value.as_str())
                         .map(String::from)
                         .collect();
+                }
+
+                // Extract the "all_revs" array of RevID and update the Repository struct
+                if let Some(all_revs_json) = repo_json["all_revs"].as_array() {
+                    self.all_revs = all_revs_json
+                        .iter()
+                        .filter_map(|value| RevID::from_str(value.as_str().unwrap()).ok())
+                        .collect();
+                }
+
+                // Extract the "cur_rev" string and update the Repository struct
+                if let Some(cur_rev_json) = repo_json["cur_rev"].as_str() {
+                    self.cur_rev = RevID::from_str(cur_rev_json).unwrap();
                 }
 
                 Ok(())
@@ -263,7 +332,7 @@ pub fn clone(source_path: &str, destination: &str) -> Result<(), DvcsError> {
     // Change the name and path to destination repository
     let mut repo_json = serde_json::from_str::<serde_json::Value>(&repo_json_content).unwrap();
     repo_json["name"] = serde_json::Value::String(destination.to_string());
-    repo_json["path"] = serde_json::Value::String(destination.to_string());
+    repo_json["root_path"] = serde_json::Value::String(destination.to_string());
 
     let content = serde_json::to_string_pretty(&repo_json).unwrap();
 
@@ -299,10 +368,12 @@ mod tests {
     fn test_repository_new() {
         let repository = Repository::new("test_repo");
         assert_eq!(repository.name, "test_repo");
-        assert_eq!(repository.path, "test_repo");
-        assert!(repository.files.is_empty());
+        assert_eq!(repository.root_path, "test_repo");
+        assert!(repository.tracked_files.is_empty());
         assert!(repository.commits.is_empty());
         assert!(repository.branches.is_empty());
+        assert!(repository.all_revs.is_empty());
+        // assert_eq!(repository.cur_rev, RevID::new());
     }
 
     // Test ID: 2
@@ -338,7 +409,7 @@ mod tests {
         // Change the name and path to destination repository
         let mut repo_json = serde_json::from_str::<serde_json::Value>(&metadata_content).unwrap();
         assert_eq!(repo_json["name"], serde_json::Value::String(cwd.to_string()));
-        assert_eq!(repo_json["path"], serde_json::Value::String(cwd.to_string()));
+        assert_eq!(repo_json["root_path"], serde_json::Value::String(cwd.to_string()));
         assert_eq!(repo_json["commits"], serde_json::Value::Array(vec![serde_json::Value::String("commit1".to_string())]));
         assert_eq!(repo_json["branches"], serde_json::Value::Array(vec![serde_json::Value::String("main".to_string())]));
     }

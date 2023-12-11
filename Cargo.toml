@@ -1,5 +1,5 @@
 [package]
-name = "dvcs"
+name = "syncode"
 version = "0.1.0"
 edition = "2021"
 
@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 clap = "4.4.11"
 serde_json = "1.0.108"
-serde = "1.0.193"
+serde = { version = "1.0.193", features = ["derive"] }
+uuid = { verson = "1.6.1", features = ["serde", "v4"] }
