@@ -128,20 +128,17 @@ fn main() {
         .subcommand(
             Command::new("merge")
                 .about("Merge two revisions")
-                .arg(Arg::new("repo_path").help("The repository path").required(true))
                 .arg(Arg::new("revision1").help("The first revision").required(true))
                 .arg(Arg::new("revision2").help("The second revision").required(true))
         )
         .subcommand(
             Command::new("push")
                 .about("Push a repository to a remote")
-                .arg(Arg::new("repo_path").help("The repository path").required(true))
                 .arg(Arg::new("remote").help("The remote to push to").required(true))
         )
         .subcommand(
             Command::new("pull")
                 .about("Pull a repository from a remote")
-                .arg(Arg::new("repo_path").help("The repository path").required(true))
                 .arg(Arg::new("remote").help("The remote to pull from").required(true))
         )
         .get_matches();
@@ -178,10 +175,8 @@ fn main() {
             let mut args = Vec::new();
             let commit1 = merge_matches.get_one::<String>("revision1").unwrap().to_string();
             let commit2 = merge_matches.get_one::<String>("revision2").unwrap().to_string();
-            let repo_path = merge_matches.get_one::<String>("repo_path").unwrap().to_string();
             args.push(&commit1);
             args.push(&commit2);
-            args.push(&repo_path);
             user_hiding::user_interface::execute_command("merge".to_string(), args);
         }
 
@@ -316,17 +311,13 @@ fn main() {
         Some(("push", push_matches)) => {
             let mut args = Vec::new();
             let remote = push_matches.get_one::<String>("remote").unwrap().to_string();
-            let repo_path = push_matches.get_one::<String>("repo_path").unwrap().to_string();
             args.push(&remote);
-            args.push(&repo_path);
             user_hiding::user_interface::execute_command("push".to_string(), args);
         }
         Some(("pull", pull_matches)) => {
             let mut args = Vec::new();
             let remote = pull_matches.get_one::<String>("remote").unwrap().to_string();
-            let repo_path = pull_matches.get_one::<String>("repo_path").unwrap().to_string();
             args.push(&remote);
-            args.push(&repo_path);
             user_hiding::user_interface::execute_command("pull".to_string(), args);
         }
 

@@ -111,7 +111,7 @@ pub fn execute_command(cmd_name: String, args: Vec<&String>) -> Result<(), DvcsE
         // DvcsCommand::Status => {
         //     match status() {
         //         Ok(()) => {}
-        //         Err(err) => {
+        //         Err(err) => {``
         //             eprintln!("Error: {}", err.to_string());
         //             return Err(err);
         //         }
@@ -197,15 +197,21 @@ pub fn execute_command(cmd_name: String, args: Vec<&String>) -> Result<(), DvcsE
         DvcsCommand::Commit => {
             let repo_root_path = machine_hiding::file_system_operations::find_repo_root_path(&cwd);
             let mut repo = repository_hiding::initialization::open(&repo_root_path);
-            repo.commit();
-            repo.save();
+            let commit_result: Result<Rev, DvcsError> = repo.commit();
+            match commit_result {
+                Ok(r) => {repo.save();}
+                Err(err) => {
+                    eprintln!("Error: {}", err.to_string());
+                }
+            }
         },
 
         DvcsCommand::Merge => {
             let commit1 = &args[0];
             let commit2 = &args[1];
-            let repo_path = &args[2];
-            let mut repo = repository_hiding::initialization::open(*repo_path);
+            // println!("{}", commit1);
+            // println!("{}", commit2);
+            let mut repo = repository_hiding::initialization::open(&cwd);
             // TODO: @Demin String -> RevID
             let trunk_id = repository_hiding::initialization::new_revID_from_string(uuid::Uuid::parse_str(&commit1).unwrap());
             let other_id = repository_hiding::initialization::new_revID_from_string(uuid::Uuid::parse_str(&commit2).unwrap());
@@ -214,9 +220,8 @@ pub fn execute_command(cmd_name: String, args: Vec<&String>) -> Result<(), DvcsE
         },
         DvcsCommand::Push => {
             let remote_repo_path = &args[0];
-            let local_repo_path = &args[1];
 
-            let local_repo = repository_hiding::initialization::open(&local_repo_path);
+            let local_repo = repository_hiding::initialization::open(&cwd);
             let mut remote_repo = repository_hiding::initialization::open(&remote_repo_path);
             remote_repo.sync(&local_repo);
 
@@ -232,9 +237,8 @@ pub fn execute_command(cmd_name: String, args: Vec<&String>) -> Result<(), DvcsE
         },
         DvcsCommand::Pull => {
             let remote_repo_path = &args[0];
-            let local_repo_path = &args[1];
 
-            let mut local_repo = repository_hiding::initialization::open(&local_repo_path);
+            let mut local_repo = repository_hiding::initialization::open(&cwd);
             let remote_repo = repository_hiding::initialization::open(&remote_repo_path);
             local_repo.sync(&remote_repo);
 

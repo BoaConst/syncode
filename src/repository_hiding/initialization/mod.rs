@@ -363,18 +363,24 @@ impl Repo {
         self.repo.all_revs.push(rev_id.clone());
     }
 
-    pub fn commit(&mut self) -> repository_hiding::initialization::Rev {
-        let mut rev = new_rev(self, &self.repo.cur_rev, &EMPTY);
+    pub fn commit(&mut self) -> Result<repository_hiding::initialization::Rev, DvcsError> {
+        if self.repo.tracked_files.is_empty() {
+            return Err(DvcsError::CommitError);
+        } else {
+            let mut rev = new_rev(self, &self.repo.cur_rev, &EMPTY);
 
-        rev.commit(&self.repo.tracked_files);
-        rev.save();
+            rev.commit(&self.repo.tracked_files);
+            rev.save();
 
-        self.add_rev(rev.get_id());
-        self.set_head_rev(rev.get_id());
-        self.save();
+            self.add_rev(rev.get_id());
+            self.set_head_rev(rev.get_id());
+            self.save();
 
-        println!("Committed -> {}", rev.get_id());
-        rev
+            println!("Committed -> {}", rev.get_id());
+
+            self.repo.tracked_files = Vec::new();
+            Ok(rev)
+        }
     }
 
     pub fn contains_rev(&self, rev_id: &RevID) -> bool {
