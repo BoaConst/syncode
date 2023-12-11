@@ -6,7 +6,7 @@
 
 use crate::{repository_hiding::initialization::*, machine_hiding};
 
-use super::inspection;
+use super::{inspection, initialization};
 
 pub fn can_reach_rev(repository: &Repo, current_id: &RevID, target_id: &RevID) -> bool {
     if current_id.is_empty() {

@@ -48,26 +48,26 @@ pub struct Repository {
 //     parent_other: RevID,
 //     files: Vec<String>,
 // }
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct Rev {
-    pub root_path: String,
-    pub dev_path: String,
-    pub rev_path: String,
+// #[derive(Serialize, Deserialize, Debug, Clone)]
+// pub struct Rev {
+//     pub root_path: String,
+//     pub dev_path: String,
+//     pub rev_path: String,
     
-    // rev: RevInfo,
-    rev_id: RevID,
-    parent_trunk: RevID,
-    parent_other: RevID,
-    files: Vec<String>,
-}
+//     // rev: RevInfo,
+//     rev_id: RevID,
+//     parent_trunk: RevID,
+//     parent_other: RevID,
+//     files: Vec<String>,
+// }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct RevID {
-    // #[serde(rename="UUID")]
-    value: uuid::Uuid,
-}
+// #[derive(Serialize, Deserialize, Debug, Clone)]
+// pub struct RevID {
+//     // #[serde(rename="UUID")]
+//     value: uuid::Uuid,
+// }
 
-pub const EMPTY: RevID = RevID { value: Uuid::nil() };
+// pub const EMPTY: RevID = RevID { value: Uuid::nil() };
 
 /// This enum type is used to represent the DVCS functionalities.
 /// used in the CommandParser module to parse the user input and in the interface module to execute the DVCS commands.
@@ -267,7 +267,7 @@ impl Repo {
     }
 
     pub fn commit(&mut self) -> repository_hiding::initialization::Rev {
-        let mut rev = repository_hiding::initialization::new_rev(self, &self.repo.cur_rev, &EMPTY);
+        let mut rev = new_rev(self, &self.repo.cur_rev, &EMPTY);
 
         rev.commit(&self.repo.tracked_files);
         rev.save();
@@ -290,7 +290,7 @@ impl Repo {
         assert!(self.contains_rev(&rev_id), "Invalid revision!");
 
         machine_hiding::file_system_operations::del_files(&self.root_path, &self.repo.tracked_files);
-        let rev = rev_open(self, &rev_id);
+        let rev = open_rev(self, &rev_id);
         rev.checkout();
 
         self.update_files(rev.get_files());
@@ -411,11 +411,11 @@ impl Rev {
     }
 
 
-    pub fn checkout(&self) {
-        for f_rel_path in &self.rev.files {
-            assert!(machine_hiding::file_system_operations::check_path(&machine_hiding::file_system_operations::join_paths(&self.rev_path, &f_rel_path)), "File missing in a revision!");
-            machine_hiding::file_system_operations::my_copy_file(&self.root_path, &self.rev_path, f_rel_path);
-        }
+    // pub fn checkout(&self) {
+    //     for f_rel_path in &self.rev.files {
+    //         assert!(machine_hiding::file_system_operations::check_path(&machine_hiding::file_system_operations::join_paths(&self.rev_path, &f_rel_path)), "File missing in a revision!");
+    //         machine_hiding::file_system_operations::my_copy_file(&self.root_path, &self.rev_path, f_rel_path);
+    //     }
 
     pub fn get_parent_trunk_id(&self) -> &RevID {
         &self.rev.parent_trunk
@@ -471,6 +471,13 @@ impl Rev {
 
     }
 
+    pub fn checkout(&self) {
+        for f_rel_path in &self.rev.files {
+            assert!(machine_hiding::file_system_operations::check_path(&machine_hiding::file_system_operations::join_paths(&self.rev_path, &f_rel_path)), "File missing in a revision!");
+            machine_hiding::file_system_operations::my_copy_file(&self.root_path, &self.rev_path, f_rel_path);
+        }
+    }
+
 }
 pub fn new_revID() -> RevID {
     RevID {
@@ -520,16 +527,7 @@ pub fn open_rev(repo: &Repo, rev_id: &RevID) -> Rev {
 }
 
 
-    let json = machine_hiding::file_system_operations::read_line(&rev_path, &String::from("rev.json"));
-    let r: RevInfo = serde_json::from_str(&json).expect("Unable to open revision, bad rev file!");
 
-    Rev {
-        root_path: repo.root_path.clone(),
-        dev_path: repo.dev_path.clone(),
-        rev_path: rev_path.clone(),
-        rev: r
-    }
-}
 pub fn init(root_path: &String) -> Result<(), DvcsError> {
     if !machine_hiding::file_system_operations::check_path(root_path) {
         machine_hiding::file_system_operations::create_dir_all(root_path);
