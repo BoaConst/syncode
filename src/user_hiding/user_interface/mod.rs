@@ -154,16 +154,13 @@ pub fn execute_command(cmd_name: String, args: Vec<&String>) -> Result<(), DvcsE
         //         }
         //     }
         // },
-        // DvcsCommand::Checkout => {
-        //     let commit = &args[0];
-        //     match checkout(commit) {
-        //         Ok(()) => {}
-        //         Err(err) => {
-        //             eprintln!("Error: {}", err.to_string());
-        //             return Err(err);
-        //         }
-        //     }
-        // },
+        DvcsCommand::Checkout => {
+            let repo_root_path = machine_hiding::file_system_operations::find_repo_root_path(&cwd);
+            let mut repo = repository_hiding::initialization::open(&repo_root_path);
+            repo.checkout(&args[0]);
+            repo.save();
+
+        },
         // DvcsCommand::Status => {
         //     match status() {
         //         Ok(()) => {}
