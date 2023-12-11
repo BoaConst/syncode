@@ -25,7 +25,7 @@ pub fn parse_command(cmd_name: String) -> Result<DvcsCommand, DvcsError> {
         "push" => Ok(DvcsCommand::Push),
         "pull" => Ok(DvcsCommand::Pull),
         "clone" => Ok(DvcsCommand::Clone),
-        "help" => Ok(DvcsCommand::Help),
+        // "help" => Ok(DvcsCommand::Help),
         _ => Err(DvcsError::InvalidCommand),
     }
 }

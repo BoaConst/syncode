@@ -50,6 +50,7 @@ pub struct Rev {
     pub root_path: String,
     pub dev_path: String,
     pub rev_path: String,
+    
     // rev: RevInfo,
     rev_id: RevID,
     parent_trunk: RevID,

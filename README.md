@@ -70,7 +70,7 @@ syncode add file1.txt file2.txt
 5. **Commit Changes (commit):**
 - Commit the current state of the repository:
 ```rust
-syncode commit "Your commit message"
+syncode commit
 ```
 6. **View Repository Status (status):**
 - View the status of tracked and untracked files:
@@ -81,4 +81,44 @@ syncode status
 - View the commit history:
 ```rust
 syncode log
+```
+8. **View the differences/changes (diff):**
+- View the differences/changes between revisions:
+```rust
+syncode diff <"rev1"> <"rev2">
+```
+9. **View current head/branch (heads):**
+- View the current head/branch of the repository:
+```rust
+syncode heads
+```
+10. **View a file (cat):**
+- View the content of a file:
+```rust
+syncode cat <"file.txt">
+```
+11. **Check out a specific revision (checkout):**
+- Check out a specific revision:
+```rust
+syncode checkout <"rev1">
+```
+12. **Merge 2 different revisions (merge):**
+- Merge 2 different revisions:
+```rust
+syncode merge <"rev1"> <"rev2"> <"path/to/repo">
+```
+13. **Push a commit (push):**
+- Push a commit:
+```rust
+syncode push <"remote"> <"local">
+```
+14. **Pull a commit (pull):**
+- Pull a remote repo to local repo:
+```rust
+syncode push <"remote"> <"local">
+```
+15. **View a help message (help):**
+- View the help message:
+```rust
+syncode help
 ```
