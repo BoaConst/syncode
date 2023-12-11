@@ -171,12 +171,177 @@ pub fn execute_command(cmd_name: String, args: Vec<&String>) -> Result<(), DvcsE
         //     let commit1 = &args[0];
         //     let commit2 = &args[1];
         //     match diff(commit1, commit2) {
+        DvcsCommand::Add => {
+            let file_abs_path = machine_hiding::file_system_operations::join_paths(&cwd, &args[0]);
+            // println!("abs path at {}", file_abs_path);
+
+            let repo_root_path = machine_hiding::file_system_operations::find_repo_root_path(&cwd);
+            // println!("repo find at {}", repo_root_path);
+            let file_rel_path = machine_hiding::file_system_operations::find_rel_path(&repo_root_path, &file_abs_path);
+            // println!("file rel path find at {}", file_abs_path);
+            let mut r = repository_hiding::initialization::open(&repo_root_path);
+
+            // match r.add_file(&file_rel_path) {
+            match r.add_file(&file_abs_path) {
+                Ok(()) => {r.save();}
+                Err(err) => {
+                    eprintln!("Error: {}", err.to_string());
+                    return Err(err);
+                }
+            }
+            // r.add_file(&file_rel_path);
+            // r.save();
+
+            println!("{}", r);
+        },
+        DvcsCommand::Commit => {
+            let repo_root_path = machine_hiding::file_system_operations::find_repo_root_path(&cwd);
+            let mut repo = repository_hiding::initialization::open(&repo_root_path);
+            repo.commit();
+            repo.save();
+        },
+
+        DvcsCommand::Merge => {
+            let commit1 = &args[0];
+            let commit2 = &args[1];
+            let repo_path = &args[2];
+            let mut repo = repository_hiding::initialization::open(*repo_path);
+            // TODO: @Demin String -> RevID
+            let trunk_id = repository_hiding::initialization::new_revID_from_string(uuid::Uuid::parse_str(&commit1).unwrap());
+            let other_id = repository_hiding::initialization::new_revID_from_string(uuid::Uuid::parse_str(&commit2).unwrap());
+            
+            repo.merge(&trunk_id, &other_id);
+        },
+        DvcsCommand::Push => {
+            let remote_repo_path = &args[0];
+            let local_repo_path = &args[1];
+
+            let local_repo = repository_hiding::initialization::open(&local_repo_path);
+            let mut remote_repo = repository_hiding::initialization::open(&remote_repo_path);
+            remote_repo.sync(&local_repo);
+
+            let trunk_id = repository_hiding::initialization::new_revID_from_string(uuid::Uuid::parse_str(&remote_repo.get_head_rev_str()).unwrap());
+            let other_id = repository_hiding::initialization::new_revID_from_string(uuid::Uuid::parse_str(&local_repo.get_head_rev_str()).unwrap());
+
+            let revision = remote_repo.merge(&trunk_id, &other_id);
+
+            // TODO: Uncomment when checkout is implemented. 
+            // if revision.is_ok() {
+            //     remote_repo.checkout(&revision.unwrap().get_id());
+            // }
+        },
+        DvcsCommand::Pull => {
+            let remote_repo_path = &args[0];
+            let local_repo_path = &args[1];
+
+            let mut local_repo = repository_hiding::initialization::open(&local_repo_path);
+            let remote_repo = repository_hiding::initialization::open(&remote_repo_path);
+            local_repo.sync(&remote_repo);
+
+            let trunk_id = repository_hiding::initialization::new_revID_from_string(uuid::Uuid::parse_str(&remote_repo.get_head_rev_str()).unwrap());
+            let other_id = repository_hiding::initialization::new_revID_from_string(uuid::Uuid::parse_str(&local_repo.get_head_rev_str()).unwrap());
+
+            let revision = local_repo.merge(&trunk_id, &other_id);
+            // TODO: Uncomment when checkout is implemented. 
+            // if revision.is_ok() {
+            //     local_repo.checkout(&revision.unwrap().get_id());
+            // }
+        },
+        // DvcsCommand::Remove => {
+        //     let file = &args[0];
+        //     match remove(file) {
         //         Ok(()) => {}
         //         Err(err) => {
         //             eprintln!("Error: {}", err.to_string());
         //             return Err(err);
         //         }
+        //     }
+        // },
+        // DvcsCommand::Log => {
+        //     match log() {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        DvcsCommand::Checkout => {
+            let repo_root_path = machine_hiding::file_system_operations::find_repo_root_path(&cwd);
+            let mut repo = repository_hiding::initialization::open(&repo_root_path);
+            repo.checkout(&args[0]);
+            repo.save();
 
+        },
+        // DvcsCommand::Status => {
+        //     match status() {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Push => {
+        //     match push() {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Pull => {
+        //     match pull() {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Merge => {
+        //     let commit1 = &args[0];
+        //     let commit2 = &args[1];
+        //     match merge(commit1, commit2) {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Heads => {
+        //     match heads() {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        //
+        // },
+        // DvcsCommand::Cat => {
+        //     let file = &args[0];
+        //     match cat(file) {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //
+        //     }
+        // },
+        // DvcsCommand::Diff => {
+        //     let commit1 = &args[0];
+        //     let commit2 = &args[1];
+        //     match diff(commit1, commit2) {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //
         //     }
         // },
         

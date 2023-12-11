@@ -51,7 +51,7 @@ pub fn validate_command(command: &DvcsCommand, args: Vec<&String>) -> Result<(),
             }
         }
         DvcsCommand::Commit => {
-            if args.len() != 1 {
+            if args.len() > 1 {
                 return Err(DvcsError::InvalidNumberOfArguments);
             }
         }
