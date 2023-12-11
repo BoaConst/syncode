@@ -170,6 +170,10 @@ impl Repo {
         // machine_hiding::file_system_operations::write_string(&dev_path, &String::from("repo.json"), &serialized);
     }
 
+    pub fn get_head_rev_str(&self) -> String {
+        self.repo.cur_rev.to_string()
+    }
+
     pub fn add_file(&mut self, abs_path: &String)-> Result<(), DvcsError> {
 
         let full_path = machine_hiding::file_system_operations::join_paths(&self.root_path, abs_path);

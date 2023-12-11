@@ -114,6 +114,11 @@ pub fn execute_command(cmd_name: String, args: Vec<&String>) -> Result<(), DvcsE
             repo.save();
 
         },
+        DvcsCommand::Heads => {
+            let repo_root_path = machine_hiding::file_system_operations::find_repo_root_path(&cwd);
+            let mut repo = repository_hiding::initialization::open(&repo_root_path);
+            println!("current heads are at: {}", repo.get_head_rev_str());
+        },
         // DvcsCommand::Status => {
         //     match status() {
         //         Ok(()) => {}
