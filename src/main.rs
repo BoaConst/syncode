@@ -115,8 +115,11 @@ fn main() {
         // TODO: add and/or edit the rest of the commands as needed
         Some(("cat", cat_matches)) => {
             let mut args = Vec::new();
-            let file = cat_matches.get_one::<String>("file").unwrap().to_string();
-            args.push(&file);
+            let mut path = String::new();
+            if cat_matches.args_present() {
+                path = cat_matches.get_one::<String>("file").unwrap().to_string();;
+            }
+            args.push(&path);
             user_hiding::user_interface::execute_command("cat".to_string(), args);
         }
         Some(("add", add_matches)) => {

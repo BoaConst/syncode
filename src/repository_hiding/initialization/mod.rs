@@ -121,7 +121,7 @@ pub struct Rev {
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
 pub struct RevID {
     // #[serde(rename="UUID")]
-    value: uuid::Uuid,
+    pub(crate) value: uuid::Uuid,
 }
 pub const EMPTY: RevID = RevID { value: Uuid::nil().simple().into_uuid() };
 
@@ -172,6 +172,10 @@ impl Repo {
 
     pub fn get_head_rev_str(&self) -> String {
         self.repo.cur_rev.to_string()
+    }
+
+    pub fn get_all_rev_str(&self) -> Vec<RevID> {
+        self.repo.all_revs.clone()
     }
 
     pub fn add_file(&mut self, abs_path: &String)-> Result<(), DvcsError> {

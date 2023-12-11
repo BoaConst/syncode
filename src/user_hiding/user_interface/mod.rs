@@ -13,7 +13,8 @@ use super::repository_hiding;
 use crate::user_hiding;
 use std::io;
 use std::io::Write;
-
+use std::fs;
+use std::io::Read;
 pub fn execute_command(cmd_name: String, args: Vec<&String>) -> Result<(), DvcsError> {
     let cwd = machine_hiding::file_system_operations::get_cwd();
     let cmd_result = user_hiding::command_parser::parse_command(cmd_name.clone());
@@ -118,6 +119,21 @@ pub fn execute_command(cmd_name: String, args: Vec<&String>) -> Result<(), DvcsE
             let repo_root_path = machine_hiding::file_system_operations::find_repo_root_path(&cwd);
             let mut repo = repository_hiding::initialization::open(&repo_root_path);
             println!("current heads are at: {}", repo.get_head_rev_str());
+        },
+        DvcsCommand::Cat => {
+            println!("In file {}", args[0].to_string());
+
+            let contents = fs::read_to_string(&args[0].to_string())
+                .expect("invalid path");
+
+            println!("With text:\n{contents}");
+        },
+        DvcsCommand::Log => {
+            let repo_root_path = machine_hiding::file_system_operations::find_repo_root_path(&cwd);
+            let mut repo = repository_hiding::initialization::open(&repo_root_path);
+            for rev_id in &repo.get_all_rev_str() {
+                println!("UUID Value: {}", rev_id.value);
+            }
         },
         // DvcsCommand::Status => {
         //     match status() {
