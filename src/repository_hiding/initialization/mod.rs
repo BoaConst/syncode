@@ -225,7 +225,7 @@ impl Repo {
         let rev_id = revid_parse(&rev_id_str);
         println!("revid: {}", rev_id);
         println!("all_revs: {:?}", self.repo.all_revs);
-        // assert!(self.contains_rev(&rev_id), "Invalid revision!");
+        assert!(self.contains_rev(&rev_id), "Invalid revision!");
         if self.contains_rev(&rev_id) {
             println!("rev_id1 is present in all_revs");
         } else {
