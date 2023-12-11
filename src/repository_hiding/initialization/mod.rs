@@ -9,6 +9,7 @@ use std::path::Path;
 use crate::{machine_hiding, repository_hiding};
 use uuid::Uuid;
 use uuid;
+
 use std::fmt;
 use std::io;
 use std::io::Write;
@@ -150,6 +151,7 @@ impl fmt::Display for Repo {
 impl fmt::Display for RevID {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.value.as_simple().to_string())
+        // write!(f, "{}", self.value.to_simple().to_string())
     }
 }
 
@@ -220,7 +222,7 @@ impl Repo {
     pub fn checkout(&mut self, rev_id_str: &String) -> repository_hiding::initialization::Rev {
         println!("revidstr: {}", rev_id_str);
         let rev_id = revid_parse(&rev_id_str);
-        println!("revid: {}", rev_id.to_string());
+        println!("revid: {}", rev_id);
         assert!(self.contains_rev(&rev_id), "Invalid revision!");
 
         machine_hiding::file_system_operations::del_files(&self.root_path, &self.repo.tracked_files);
