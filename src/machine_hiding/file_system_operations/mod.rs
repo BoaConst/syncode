@@ -189,6 +189,24 @@ pub fn read_line(path: &String, name: &String) -> String {
 
 }
 
+pub fn del_file(base_path: &String, f: &String) {
+    let p = join_paths(base_path, &f);
+    if Path::new(&p).exists() {
+        //println!("Del {}", p);
+        fs::remove_file(&p).expect("Unable to delete file");
+    }
+}
+
+pub fn del_files(base_path: &String, files: &Vec<String>) {
+    for f in files {
+        let p = join_paths(base_path, &f);
+        if Path::new(&p).exists() {
+            //println!("Del {}", p);
+            fs::remove_file(&p).expect("Unable to delete file");
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

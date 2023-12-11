@@ -117,7 +117,7 @@ pub struct Rev {
     pub rev_path: String,
     rev: RevInfo,
 }
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, Eq, PartialEq)]
 pub struct RevID {
     // #[serde(rename="UUID")]
     value: uuid::Uuid,
@@ -181,6 +181,17 @@ impl Repo {
         Ok(())
     }
 
+    pub fn remove_file(&mut self, rel_path: &String) {
+        self.repo.tracked_files.retain(|x| x != rel_path);
+
+        let full_path = machine_hiding::file_system_operations::join_paths(&self.root_path, rel_path);
+        if machine_hiding::file_system_operations::check_path(&full_path) {
+            machine_hiding::file_system_operations::del_file(&self.root_path, rel_path);
+        }
+
+        println!("Removed from tracked files @ {}", rel_path);
+    }
+
     pub fn set_head_rev(&mut self, rev_id: &RevID) {
         self.repo.cur_rev = rev_id.clone();
     }
@@ -202,6 +213,35 @@ impl Repo {
         println!("Committed -> {}", rev.get_id());
         rev
     }
+
+    pub fn contains_rev(&self, rev_id: &RevID) -> bool {
+        self.repo.all_revs.contains(&rev_id)
+    }
+    pub fn checkout(&mut self, rev_id_str: &String) -> repository_hiding::initialization::Rev {
+        println!("revidstr: {}", rev_id_str);
+        let rev_id = revid_parse(&rev_id_str);
+        println!("revid: {}", rev_id.to_string());
+        assert!(self.contains_rev(&rev_id), "Invalid revision!");
+
+        machine_hiding::file_system_operations::del_files(&self.root_path, &self.repo.tracked_files);
+        let rev = rev_open(self, &rev_id);
+        rev.checkout();
+
+        self.update_files(rev.get_files());
+        self.set_head_rev(rev.get_id());
+        self.save();
+
+        println!("Checked out {}", rev_id);
+        rev
+    }
+    pub fn update_files(&mut self, files: &Vec<String>) {
+        self.repo.tracked_files.clear();
+        for f in files {
+            self.repo.tracked_files.push(f.to_string());
+        }
+    }
+
+
 }
 
 impl Rev {
@@ -224,6 +264,17 @@ impl Rev {
     pub fn save(&self) {
         let serialized = serde_json::to_string(&self.rev).unwrap();
         machine_hiding::file_system_operations::write_string(&self.rev_path, &String::from("rev.json"), &serialized);
+    }
+
+    pub fn checkout(&self) {
+        for f_rel_path in &self.rev.files {
+            assert!(machine_hiding::file_system_operations::check_path(&machine_hiding::file_system_operations::join_paths(&self.rev_path, &f_rel_path)), "File missing in a revision!");
+            machine_hiding::file_system_operations::my_copy_file(&self.root_path, &self.rev_path, f_rel_path);
+        }
+    }
+
+    pub fn get_files(&self) -> &Vec<String> {
+        &self.rev.files
     }
 }
 pub fn new_revID() -> RevID {
@@ -250,8 +301,27 @@ pub fn new_rev(repo: &Repo, trunk_id: &RevID, other_id: &RevID) -> Rev {
             rev: rev
     }
 }
+pub fn revid_parse(s: &String) -> RevID {
+    let id = Uuid::parse_str(s).expect("Bad revision ID format!");
+    RevID {
+        value: id
+    }
+}
 
+pub fn rev_open(repo: &Repo, rev_id: &RevID) -> Rev {
+    let rev_path = machine_hiding::file_system_operations::join_paths(&repo.dev_path, &rev_id.to_string());
+    assert!(machine_hiding::file_system_operations::check_path(&rev_path), "Revision dir doesn't exist!");
 
+    let json = machine_hiding::file_system_operations::read_line(&rev_path, &String::from("rev.json"));
+    let r: RevInfo = serde_json::from_str(&json).expect("Unable to open revision, bad rev file!");
+
+    Rev {
+        root_path: repo.root_path.clone(),
+        dev_path: repo.dev_path.clone(),
+        rev_path: rev_path.clone(),
+        rev: r
+    }
+}
 pub fn init(root_path: &String) -> Result<(), DvcsError> {
     if !machine_hiding::file_system_operations::check_path(root_path) {
         machine_hiding::file_system_operations::create_dir_all(root_path);

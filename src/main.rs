@@ -121,10 +121,10 @@ fn main() {
         }
         Some(("add", add_matches)) => {
             let mut args = Vec::new();
-                let mut path = String::new();
-                if add_matches.args_present() {
-                    path = add_matches.get_one::<String>("file").unwrap().to_string();;
-                }
+            let mut path = String::new();
+            if add_matches.args_present() {
+                path = add_matches.get_one::<String>("file").unwrap().to_string();;
+            }
             args.push(&path);
             user_hiding::user_interface::execute_command("add".to_string(), args);
         }
@@ -144,9 +144,12 @@ fn main() {
         }
         Some(("checkout", checkout_matches)) => {
             let mut args = Vec::new();
-            let commit = checkout_matches.get_one::<String>("commit").unwrap().to_string();
-            args.push(&commit);
-            user_hiding::user_interface::execute_command("checkout".to_string(), args);
+                let mut rev = String::new();
+                if checkout_matches.args_present() {
+                    rev = checkout_matches.get_one::<String>("commit").unwrap().to_string();
+                }
+                args.push(&rev);
+                user_hiding::user_interface::execute_command("checkout".to_string(), args);
         }
         Some(("status", _)) => {
             let mut args = Vec::new();
