@@ -76,7 +76,7 @@ pub fn validate_command(command: &DvcsCommand, args: Vec<&String>) -> Result<(),
             }
         }
         DvcsCommand::Push => {
-            if args.len() != 2 {
+            if args.len() != 1 {
                 return Err(DvcsError::InvalidNumberOfArguments);
             }
         }
@@ -96,7 +96,7 @@ pub fn validate_command(command: &DvcsCommand, args: Vec<&String>) -> Result<(),
             }
         }
         DvcsCommand::Pull => {
-            if args.len() != 2 {
+            if args.len() != 1 {
                 return Err(DvcsError::InvalidNumberOfArguments);
             }
         }

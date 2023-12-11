@@ -469,6 +469,25 @@ impl Repo {
     }
 
 
+    fn list_files(&self, directory_path: &Path) -> Vec<String> {
+        let mut file_paths = Vec::new();
+    
+        if let Ok(entries) = fs::read_dir(directory_path) {
+            for entry in entries.flatten() {
+                let path = entry.path();
+                if path.is_file() {
+                    if let Some(file_path) = path.to_str() {
+                        file_paths.push(file_path.to_string());
+                    }
+                } else if path.is_dir() {
+                    file_paths.extend(self.list_files(&path));
+                }
+            }
+        }
+    
+        file_paths
+    }
+
     pub fn sync(&mut self, other_repo: &Repo) {
         for other_rev_id in &other_repo.repo.all_revs {
             if !self.repo.all_revs.contains(&other_rev_id) {
@@ -482,6 +501,16 @@ impl Repo {
         }
 
         self.save();
+
+        // copy all the files from the self to other_repo
+        let files: Vec<String> = self.list_files(Path::new(&self.root_path));
+        for f_rel_path in files {
+            assert!(machine_hiding::file_system_operations::check_path(&machine_hiding::file_system_operations::join_paths(&self.root_path, &f_rel_path)), "File missing in directory!");
+            let dest_path = machine_hiding::file_system_operations::join_paths(&other_repo.root_path, &f_rel_path);
+            let src_path = machine_hiding::file_system_operations::join_paths(&self.root_path, &f_rel_path);
+            machine_hiding::file_system_operations::copy_file(&src_path, &dest_path);
+        }
+
         println!("Synchronized {} with {}", self.root_path, other_repo.root_path);
     }
 
