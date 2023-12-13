@@ -60,6 +60,118 @@ pub fn execute_command(cmd_name: String, args: Vec<&String>) -> Result<(), DvcsE
         },
 
         // TODO: Add and/or edit the rest of the commands as needed
+        // DvcsCommand::Add => {
+        //     let file = &args[0];
+        //     match add(file) {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Commit => {
+        //     let message = &args[0];
+        //     match commit(message) {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Remove => {
+        //     let file = &args[0];
+        //     match remove(file) {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Log => {
+        //     match log() {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Checkout => {
+        //     let commit = &args[0];
+        //     match checkout(commit) {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Status => {
+        //     match status() {
+        //         Ok(()) => {}
+        //         Err(err) => {``
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }log
+        // },
+        // DvcsCommand::Push => {
+        //     match push() {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Pull => {
+        //     match pull() {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Merge => {
+        //     let commit1 = &args[0];
+        //     let commit2 = &args[1];
+        //     match merge(commit1, commit2) {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+        // },
+        // DvcsCommand::Heads => {
+        //     match heads() {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+        //     }
+
+        // },
+        // DvcsCommand::Cat => {
+        //     let file = &args[0];
+        //     match cat(file) {
+        //         Ok(()) => {}
+        //         Err(err) => {
+        //             eprintln!("Error: {}", err.to_string());
+        //             return Err(err);
+        //         }
+
+        //     }
+        // },
+        // DvcsCommand::Diff => {
+        //     let commit1 = &args[0];
+        //     let commit2 = &args[1];
+        //     match diff(commit1, commit2) {
         DvcsCommand::Add => {
             let file_abs_path = machine_hiding::file_system_operations::join_paths(&cwd, &args[0]);
             // println!("abs path at {}", file_abs_path);
@@ -86,8 +198,72 @@ pub fn execute_command(cmd_name: String, args: Vec<&String>) -> Result<(), DvcsE
         DvcsCommand::Commit => {
             let repo_root_path = machine_hiding::file_system_operations::find_repo_root_path(&cwd);
             let mut repo = repository_hiding::initialization::open(&repo_root_path);
-            repo.commit();
-            repo.save();
+            let commit_result: Result<Rev, DvcsError> = repo.commit();
+            match commit_result {
+                Ok(r) => {repo.save();}
+                Err(err) => {
+                    eprintln!("Error: {}", err.to_string());
+                }
+            }
+        },
+        DvcsCommand::Cat => {
+            println!("In file {}", args[0].to_string());
+
+            let contents = fs::read_to_string(&args[0].to_string())
+                .expect("invalid path");
+
+            println!("With text:\n{contents}");
+        },
+
+        DvcsCommand::Merge => {
+            let commit1 = &args[0];
+            let commit2 = &args[1];
+            // println!("{}", commit1);
+            // println!("{}", commit2);
+            let mut repo = repository_hiding::initialization::open(&cwd);
+            // TODO: @Demin String -> RevID
+            let trunk_id = repository_hiding::initialization::new_revID_from_string(uuid::Uuid::parse_str(&commit1).unwrap());
+            let other_id = repository_hiding::initialization::new_revID_from_string(uuid::Uuid::parse_str(&commit2).unwrap());
+            
+            repo.merge(&trunk_id, &other_id);
+        },
+        DvcsCommand::Push => {
+            let remote_repo_path = &args[0];
+
+            let local_repo = repository_hiding::initialization::open(&cwd);
+            let mut remote_repo = repository_hiding::initialization::open(&remote_repo_path);
+            remote_repo.sync(&local_repo);
+
+            let trunk_id = repository_hiding::initialization::new_revID_from_string(uuid::Uuid::parse_str(&remote_repo.get_head_rev_str()).unwrap());
+            let other_id = repository_hiding::initialization::new_revID_from_string(uuid::Uuid::parse_str(&local_repo.get_head_rev_str()).unwrap());
+
+            let revision = remote_repo.merge(&trunk_id, &other_id);
+
+            // TODO: Uncomment when checkout is implemented. 
+            // if revision.is_ok() {
+            //     remote_repo.checkout(&revision.unwrap().get_id());
+            // }
+        },
+        DvcsCommand::Pull => {
+            let remote_repo_path = &args[0];
+
+            let mut local_repo = repository_hiding::initialization::open(&cwd);
+            let remote_repo = repository_hiding::initialization::open(&remote_repo_path);
+            local_repo.sync(&remote_repo);
+
+            let trunk_id = repository_hiding::initialization::new_revID_from_string(uuid::Uuid::parse_str(&remote_repo.get_head_rev_str()).unwrap());
+            let other_id = repository_hiding::initialization::new_revID_from_string(uuid::Uuid::parse_str(&local_repo.get_head_rev_str()).unwrap());
+
+            let revision = local_repo.merge(&trunk_id, &other_id);
+            // TODO: Uncomment when checkout is implemented. 
+            // if revision.is_ok() {
+            //     local_repo.checkout(&revision.unwrap().get_id());
+            // }
+        },
+        DvcsCommand::Heads => {
+            let repo_root_path = machine_hiding::file_system_operations::find_repo_root_path(&cwd);
+            let mut repo = repository_hiding::initialization::open(&repo_root_path);
+            println!("current heads are at: {}", repo.get_head_rev_str());
         },
         // DvcsCommand::Remove => {
         //     let file = &args[0];
@@ -108,32 +284,19 @@ pub fn execute_command(cmd_name: String, args: Vec<&String>) -> Result<(), DvcsE
         //         }
         //     }
         // },
+        DvcsCommand::Log => {
+            let repo_root_path = machine_hiding::file_system_operations::find_repo_root_path(&cwd);
+            let mut repo = repository_hiding::initialization::open(&repo_root_path);
+            for rev_id in &repo.get_all_rev_str() {
+                println!("UUID Value: {}", rev_id.read_id());
+            }
+        },
         DvcsCommand::Checkout => {
             let repo_root_path = machine_hiding::file_system_operations::find_repo_root_path(&cwd);
             let mut repo = repository_hiding::initialization::open(&repo_root_path);
             repo.checkout(&args[0]);
             repo.save();
 
-        },
-        DvcsCommand::Heads => {
-            let repo_root_path = machine_hiding::file_system_operations::find_repo_root_path(&cwd);
-            let mut repo = repository_hiding::initialization::open(&repo_root_path);
-            println!("current heads are at: {}", repo.get_head_rev_str());
-        },
-        DvcsCommand::Cat => {
-            println!("In file {}", args[0].to_string());
-
-            let contents = fs::read_to_string(&args[0].to_string())
-                .expect("invalid path");
-
-            println!("With text:\n{contents}");
-        },
-        DvcsCommand::Log => {
-            let repo_root_path = machine_hiding::file_system_operations::find_repo_root_path(&cwd);
-            let mut repo = repository_hiding::initialization::open(&repo_root_path);
-            for rev_id in &repo.get_all_rev_str() {
-                println!("UUID Value: {}", rev_id.value);
-            }
         },
         // DvcsCommand::Status => {
         //     match status() {

@@ -5,6 +5,7 @@
 */
 // Importing modules
 use super::repository_hiding::initialization::*;     // including DvcsCommand, DvcsError
+use crate::machine_hiding;
 
 /// This function is used to parse the DVCS command from the user input
 pub fn parse_command(cmd_name: String) -> Result<DvcsCommand, DvcsError> {
@@ -24,7 +25,7 @@ pub fn parse_command(cmd_name: String) -> Result<DvcsCommand, DvcsError> {
         "push" => Ok(DvcsCommand::Push),
         "pull" => Ok(DvcsCommand::Pull),
         "clone" => Ok(DvcsCommand::Clone),
-        "help" => Ok(DvcsCommand::Help),
+        // "help" => Ok(DvcsCommand::Help),
         _ => Err(DvcsError::InvalidCommand),
     }
 }
@@ -36,6 +37,12 @@ pub fn validate_command(command: &DvcsCommand, args: Vec<&String>) -> Result<(),
         DvcsCommand::Init => {
             if args.len() != 1 {
                 return Err(DvcsError::InvalidNumberOfArguments);
+            }
+            // check if the provided path exists
+            let directory = args[0];
+            println!("Path: {}", directory);
+            if !machine_hiding::file_system_operations::check_path(directory) {
+                return Err(DvcsError::InvalidPath);
             }
         }
         DvcsCommand::Add => {
@@ -69,7 +76,7 @@ pub fn validate_command(command: &DvcsCommand, args: Vec<&String>) -> Result<(),
             }
         }
         DvcsCommand::Push => {
-            if args.len() != 0 {
+            if args.len() != 1 {
                 return Err(DvcsError::InvalidNumberOfArguments);
             }
         }
@@ -79,17 +86,17 @@ pub fn validate_command(command: &DvcsCommand, args: Vec<&String>) -> Result<(),
             }
         }
         DvcsCommand::Diff => {
-            if args.len() != 0 {
+            if args.len() != 2 {
                 return Err(DvcsError::InvalidNumberOfArguments);
             }
         }
         DvcsCommand::Cat => {
-            if args.len() != 1 {
+            if args.len() == 0 {
                 return Err(DvcsError::InvalidNumberOfArguments);
             }
         }
         DvcsCommand::Pull => {
-            if args.len() != 0 {
+            if args.len() != 1 {
                 return Err(DvcsError::InvalidNumberOfArguments);
             }
         }
@@ -99,7 +106,7 @@ pub fn validate_command(command: &DvcsCommand, args: Vec<&String>) -> Result<(),
             }
         }
         DvcsCommand::Merge => {
-            if args.len() != 0 {
+            if args.len() != 2 {
                 return Err(DvcsError::InvalidNumberOfArguments);
             }
         }
