@@ -117,7 +117,7 @@ pub fn three_way_merge(ancestor: Option<String>, trunk: Option<String>, other: O
             let changes_from_ancestor_to_other = inspection::diff(&ancestor, &other);
             
             if changes_are_disjoint(&changes_from_ancestor_to_trunk, &changes_from_ancestor_to_other) {
-                let merged_content = Some(format!("{}{}", trunk, other));
+                let merged_content = Some(format!("{}{}", other, other));
                 Ok(merged_content)
             } else {
                 // conflict resolution : not implemented for now
