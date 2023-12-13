@@ -86,7 +86,7 @@ pub fn validate_command(command: &DvcsCommand, args: Vec<&String>) -> Result<(),
             }
         }
         DvcsCommand::Diff => {
-            if args.len() != 0 {
+            if args.len() != 2 {
                 return Err(DvcsError::InvalidNumberOfArguments);
             }
         }
