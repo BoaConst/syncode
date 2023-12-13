@@ -444,36 +444,52 @@ impl Repo {
             return Err(DvcsError::MergeError);
         }
 
-        if trunk_id == other_id {
-            println!("Already up to date: {}", trunk_id);
-            Ok(open_rev(self, &trunk_id))
-        } else if synchronization::can_reach_rev(self, &other_id, &trunk_id) {
-            println!("Fast-forward -> {}", other_id);
-            Ok(open_rev(self, &other_id))
-        } else if synchronization::can_reach_rev(self, &trunk_id, &other_id) {
-            println!("Fast-forward -> {}", trunk_id);
-            Ok(open_rev(self, &trunk_id))
-        } else {
-            let common_id = synchronization::find_common_id(self, &trunk_id, &other_id);
+        // if trunk_id == other_id {
+        //     println!("Already up to date: {}", trunk_id);
+        //     Ok(open_rev(self, &trunk_id))
+        // } else if synchronization::can_reach_rev(self, &other_id, &trunk_id) {
+        //     println!("Fast-forward -> {}", other_id);
+        //     Ok(open_rev(self, &other_id))
+        // } else if synchronization::can_reach_rev(self, &trunk_id, &other_id) {
+        //     println!("Fast-forward -> {}", trunk_id);
+        //     Ok(open_rev(self, &trunk_id))
+        // } else {
+        //     let common_id = synchronization::find_common_id(self, &trunk_id, &other_id);
 
-            assert!(!common_id.is_empty(), "No common revision ID found!");
+        //     assert!(!common_id.is_empty(), "No common revision ID found!");
 
-            let common_rev = open_rev(self, &common_id);
-            let trunk_rev = open_rev(self, &trunk_id);
-            let other_rev = open_rev(self, &other_id);
+        //     let common_rev = open_rev(self, &common_id);
+        //     let trunk_rev = open_rev(self, &trunk_id);
+        //     let other_rev = open_rev(self, &other_id);
 
-            let mut rev: Rev = new_rev(self, &self.repo.cur_rev, &EMPTY);
+        //     let mut rev: Rev = new_rev(self, &self.repo.cur_rev, &EMPTY);
 
-            rev.merge(&common_rev, &trunk_rev, &other_rev);
-            rev.save();
+        //     rev.merge(&common_rev, &trunk_rev, &other_rev);
+        //     rev.save();
 
-            self.add_rev(rev.get_id());
+        //     self.add_rev(rev.get_id());
 
-            self.save();
+        //     self.save();
 
-            println!("Merged {} and  {} -> {}", trunk_id, other_id, rev.get_id());
-            Ok(rev)
-        }
+        //     println!("Merged {} and  {} -> {}", trunk_id, other_id, rev.get_id());
+        //     Ok(rev)
+        // }
+
+        let common_rev = open_rev(self, &self.repo.cur_rev);
+        let trunk_rev = open_rev(self, &trunk_id);
+        let other_rev = open_rev(self, &other_id);
+
+        let mut rev: Rev = new_rev(self, &self.repo.cur_rev, &EMPTY);
+
+        rev.merge(&common_rev, &trunk_rev, &other_rev);
+        rev.save();
+
+        self.add_rev(rev.get_id());
+
+        self.save();
+
+        println!("Merged {} and  {} -> {}", trunk_id, other_id, rev.get_id());
+        Ok(rev)
     }
 
 
