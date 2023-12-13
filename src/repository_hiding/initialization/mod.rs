@@ -42,34 +42,6 @@ pub struct Repository {
 
 }  
 
-// #[derive(Serialize, Deserialize, Debug, Clone)]
-// struct RevInfo {
-//     rev_id: RevID,
-//     parent_trunk: RevID,
-//     parent_other: RevID,
-//     files: Vec<String>,
-// }
-// #[derive(Serialize, Deserialize, Debug, Clone)]
-// pub struct Rev {
-//     pub root_path: String,
-//     pub dev_path: String,
-//     pub rev_path: String,
-    
-//     // rev: RevInfo,
-//     rev_id: RevID,
-//     parent_trunk: RevID,
-//     parent_other: RevID,
-//     files: Vec<String>,
-// }
-
-// #[derive(Serialize, Deserialize, Debug, Clone)]
-// pub struct RevID {
-//     // #[serde(rename="UUID")]
-//     value: uuid::Uuid,
-// }
-
-// pub const EMPTY: RevID = RevID { value: Uuid::nil() };
-
 /// This enum type is used to represent the DVCS functionalities.
 /// used in the CommandParser module to parse the user input and in the interface module to execute the DVCS commands.
 #[derive(Debug, PartialEq, Clone)]
@@ -122,15 +94,6 @@ pub enum DvcsError {
     // TODO: add more error types as needed
 }
 
-// // Implement Serialize for RevID
-// impl Serialize for RevID {
-//     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-//     where
-//         S: serde::Serializer,
-//     {
-//         self.value.to_string().serialize(serializer)
-//     }
-// }
 // Implement FromStr for RevID
 impl std::str::FromStr for RevID {
     type Err = uuid::Error;
@@ -244,8 +207,10 @@ impl Repo {
         // Iterate over files in the source repository and copy them to the new repository
         for file in &src_repository.repo.tracked_files {
             let source_file_path = machine_hiding::file_system_operations::join_paths(&source_path.to_string(), file);
-            
-            let target_file_path = machine_hiding::file_system_operations::join_paths(&self.root_path, file);
+            let file_name = file.rsplit('/').next().unwrap_or("");
+            // Manually concatenate self.root_path and file name
+            let target_file_path = format!("{}/{}", self.root_path, file_name);
+            // let target_file_path = machine_hiding::file_system_operations::join_paths(&self.root_path, file_name);
 
             match machine_hiding::file_system_operations::copy_file(&source_file_path, &target_file_path) {
                 Ok(_) => {}
@@ -293,12 +258,12 @@ impl Repo {
                 // }
 
                 // Extract the "all_revs" array of RevID and update the Repository struct
-                if let Some(all_revs_json) = repo_json["all_revs"].as_array() {
-                    self.repo.all_revs = all_revs_json
-                        .iter()
-                        .filter_map(|value| RevID::from_str(value.as_str().unwrap()).ok())
-                        .collect();
-                }
+                // if let Some(all_revs_json) = repo_json["all_revs"].as_array() {
+                //     self.repo.all_revs = all_revs_json
+                //         .iter()
+                //         .filter_map(|value| RevID::from_str(value.as_str().unwrap()).ok())
+                //         .collect();
+                // }
 
                 // Extract the "cur_rev" string and update the Repository struct
                 if let Some(cur_rev_json) = repo_json["cur_rev"].as_str() {
@@ -693,6 +658,7 @@ pub fn clone(source_path: &str, destination: &str) -> Result<(), DvcsError> {
     let mut repo_json = serde_json::from_str::<serde_json::Value>(&repo_json_content).unwrap();
     // repo_json["name"] = serde_json::Value::String(destination.to_string());
     repo_json["root_path"] = serde_json::Value::String(destination.to_string());
+    repo_json["tracked_files"] = serde_json::Value::Array(Vec::new());
 
     let content = serde_json::to_string_pretty(&repo_json).unwrap();
 
@@ -717,22 +683,6 @@ pub fn clone(source_path: &str, destination: &str) -> Result<(), DvcsError> {
 }
 
 
-
-// pub fn init(root_path: &String) -> Result<(), DvcsError> {
-//     if !machine_hiding::file_system_operations::check_path(root_path) {
-//         machine_hiding::file_system_operations::create_dir_all(root_path);
-//     }
-
-//     let dev_path = machine_hiding::file_system_operations::join_paths(root_path, &".dvcs".to_string());
-//     assert!(!machine_hiding::file_system_operations::check_path(&dev_path), "Repo already initialized!");
-//     machine_hiding::file_system_operations::create_dir_all(&dev_path);
-
-//     let repo = Repo::new(&root_path);
-//     repo.save();
-//     println!("Initialized repo @ {}", root_path);
-//     Ok(())
-// }
-
 pub fn init(repository_path: &str) -> Result<(), DvcsError> {
 
     // 1. Check if the repository already exists
@@ -750,9 +700,7 @@ pub fn init(repository_path: &str) -> Result<(), DvcsError> {
     Ok(())
 }
 
-// pub fn clone(source_path: &str, destination: &str) -> Result<(), DvcsError> {
-//     // TODO 
-// }
+
 pub fn open(root_path: &String) -> Repo {
     let dev_path = machine_hiding::file_system_operations::join_paths(root_path, &".dvcs".to_string());
     // println!("repo at {}", dev_path);
