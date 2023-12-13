@@ -351,13 +351,21 @@ impl Repo {
     pub fn contains_rev(&self, rev_id: &RevID) -> bool {
         self.repo.all_revs.contains(&rev_id)
     }
+    
+    
     pub fn checkout(&mut self, rev_id_str: &String) -> repository_hiding::initialization::Rev {
         println!("revidstr: {}", rev_id_str);
         let rev_id = revid_parse(&rev_id_str);
         println!("revid: {}", rev_id);
+        println!("all_revs: {:?}", self.repo.all_revs);
         assert!(self.contains_rev(&rev_id), "Invalid revision!");
+        if self.contains_rev(&rev_id) {
+            println!("rev_id1 is present in all_revs");
+        } else {
+            println!("rev_id1 is not present in all_revs");
+        }
 
-        machine_hiding::file_system_operations::del_files(&self.root_path, &self.repo.tracked_files);
+        // machine_hiding::file_system_operations::del_files(&self.root_path, &self.repo.tracked_files);
         let rev = open_rev(self, &rev_id);
         rev.checkout();
 
